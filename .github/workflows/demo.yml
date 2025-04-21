@@ -20,9 +20,10 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-region: us-east-1
-          aws-access-key-id: ${{ secrets.TF_USER_AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.TF_USER_AWS_SECRET }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1  # or your actual region
+
       - name: Verify AWS CLI
         run: aws sts get-caller-identity
 
