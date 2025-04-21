@@ -10,8 +10,8 @@ resource "aws_budgets_budget" "budget_notification" {
   budget_type       = "COST"
   limit_amount      = each.value.BudgetAmount
   limit_unit        = "USD"
-  time_period_start = each.value.StartMonth
-  time_period_end   = each.value.EndMonth
+#   time_period_start = each.value.StartMonth
+#   time_period_end   = each.value.EndMonth
   time_unit         = "MONTHLY"
 
   notification {
