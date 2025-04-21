@@ -24,7 +24,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1  # or your actual region
           role-to-assume: arn:aws:iam::224761220970:role/GHA-OIDC
-          aws-region: us-east-1
 
       - name: Verify AWS CLI
         run: aws sts get-caller-identity
