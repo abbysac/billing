@@ -7,6 +7,7 @@ terraform {
   }
 }
 provider "aws" {
+    region = "us-east-1"
   #for_each = { for BudgetName in local.csvfld : BudgetName.BudgetName => BudgetName }
   #assume_role {
   #role_arn    = "arn:aws:iam::[each.valueAWSAccountNumber]:role/role_XXX"
