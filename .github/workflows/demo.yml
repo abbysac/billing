@@ -23,7 +23,9 @@ jobs:
           aws-region: us-east-1
           aws-access-key-id: ${{ secrets.TF_USER_AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.TF_USER_AWS_SECRET }}
-        
+      - name: Verify AWS CLI
+        run: aws sts get-caller-identity
+
       - name: Terraform Format
         id: fmt
         run: terraform fmt
