@@ -34,7 +34,7 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: terraform init && export TF_LOG=TRACE
+        run: terraform init -upgrade && export TF_LOG=TRACE
         
       - name: show env var
         ## show env variable
