@@ -94,6 +94,13 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
       Effect   = "Allow"
       Action   = ["s3:ListAllMyBuckets", "s3:GetObject", "sts:GetCallerIdentity"]
       Resource = "*"
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:GetOpenIDConnectProvider"
+        ]
+        Resource = "arn:aws:iam::<account_id>:oidc-provider/token.actions.githubusercontent.com"
+      }
     }]
   })
 }
