@@ -99,7 +99,7 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
         Action = [
           "iam:GetOpenIDConnectProvider"
         ]
-        Resource = "arn:aws:iam::<account_id>:oidc-provider/token.actions.githubusercontent.com"
+        Resource = "*"
       }
     }]
   })
