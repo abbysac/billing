@@ -16,7 +16,10 @@ jobs:
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
-        
+      - permissions:
+        id-token: write
+        contents: read
+  
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
