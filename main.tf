@@ -61,6 +61,7 @@ resource "aws_iam_openid_connect_provider" "github" {
   thumbprint_list = ["74F3A68F16524F15424927704C9506F55A9316BD"] # GitHub's current thumbprint
 }
 
+
 # 2. IAM Role for GitHub Actions
 resource "aws_iam_role" "github_oidc_role" {
   name = "GitHubActionsOIDCRole"

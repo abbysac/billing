@@ -12,4 +12,4 @@ provider "aws" {
   #assume_role {
   #role_arn    = "arn:aws:iam::[each.valueAWSAccountNumber]:role/role_XXX"
   #external_id = "my_external_id"  
-}
+ }
