@@ -30,24 +30,24 @@ jobs:
           role-to-assume: arn:aws:iam::224761220970:role/GitHubActionsOIDCRole
           # role-to-assume: arn:aws:iam::224761220970:role/GHA-OIDC
 
-      # - name: Verify AWS CLI
-      #   run: aws sts get-caller-identity
+      - name: Verify AWS CLI
+        run: aws sts get-caller-identity
 
-      # - name: Terraform Format
-      #   id: fmt
-      #   run: terraform fmt
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt
 
-      # - name: Terraform Init
-      #   id: init
-      #   run: terraform init -upgrade && export TF_LOG=TRACE
+      - name: Terraform Init
+        id: init
+        run: terraform init -upgrade && export TF_LOG=TRACE
         
-      # - name: show env var
-      #   ## show env variable
-      #   run: echo "The ACCESS KEY is:${{secrets.TF_USER_AWS_ACCESS_KEY}}" 
+      - name: show env var
+        ## show env variable
+        run: echo "The ACCESS KEY is:${{secrets.TF_USER_AWS_ACCESS_KEY}}" 
       
-      # - name: Terraform Validate
-      #   id: validate
-      #   run: terraform validate -no-color
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
 
       # - name: Terraform Plan
       #   id: plan
