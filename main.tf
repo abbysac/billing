@@ -94,7 +94,10 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
     Statement = [
       {
         Effect   = "Allow"
-        Action   = "iam:ListRolePolicies"
+        Action   = [
+            "iam:ListRolePolicies",
+            "iam:GetOpenIDConnectProvider"
+        ]
         Resource = "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
       }
     ]
