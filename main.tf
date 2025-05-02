@@ -91,7 +91,10 @@ resource "aws_iam_role" "github_oidc_role" {
       Statement = [
         {
           Effect   = "Allow"
-          Action   = "iam:ListRolePolicies"
+          Action   = [
+            "iam:ListRolePolicies",
+            "iam:GetRole"
+          ]
           Resource = "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
         }
       ]
