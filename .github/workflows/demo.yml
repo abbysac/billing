@@ -27,7 +27,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1  # or your actual region
-          role-to-assume: arn:aws:iam::224761220970:role/GitHubActionsOIDCRole
+          # role-to-assume: arn:aws:iam::224761220970:role/GitHubActionsOIDCRole
           # role-to-assume: arn:aws:iam::224761220970:role/GHA-OIDC
 
       - name: Verify AWS CLI
