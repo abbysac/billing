@@ -53,6 +53,12 @@ output "csvdata" {
   value = local.csvfld
 }
 
+#1. OIDC provider for GitHub
+resource "aws_iam_openid_connect_provider" "github" {
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["74F3A68F16524F15424927704C9506F55A9316BD"] # GitHub's current thumbprint
+}
 
 resource "aws_iam_role" "github_oidc_role" {
   name = "GitHubActionsOIDCRole"
