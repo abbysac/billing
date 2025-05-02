@@ -97,9 +97,9 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "s3:ListAllMyBuckets",
           "s3:GetObject",
           "sts:GetCallerIdentity",
-          "iam:GetRole"
+          
         ]
-        Resource = "*"
+        Resource = "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com"
       },
       {
         Effect = "Allow"
@@ -109,7 +109,7 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "iam:ListRolePolicies",
           "iam:GetRolePolicy"
         ]
-        Resource = "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
+        Resource = "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com"
       }
     ]
   })
