@@ -1,65 +1,43 @@
-name: 'TerraformAWSBudgets'  
+name: "Terraform AWS Budget Automation"
 
 on:
   push:
     branches:
       - main
-  pull_request:
-permissions:
-  id-token: write
-  contents: read
+  # workflow_dispatch:
+  # schedule:
+  #   - cron: "0 0 * * 1"  # Every Monday at 00:00 UTC
 
 jobs:
-  TerraformAWSBudgets:
-    name: 'TerraformAWSBudgets'
+  terraform:
+    name: "Terraform Apply"
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      
+      - name: Checkout code
+        uses: actions/checkout@v1
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
-    
-      - name: Configure AWS Credentials
+        with:
+          terraform_version: 5.96.0
+
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1  # or your actual region
+          aws-region: ${{ secrets.AWS_REGION }}
           role-to-assume: arn:aws:iam::224761220970:role/GitHubActionsOIDCRole
-          # role-to-assume: arn:aws:iam::224761220970:role/GHA-OIDC
-
-      - name: Verify AWS CLI
-        run: aws sts get-caller-identity
-
-      - name: Terraform Format
-        id: fmt
-        run: terraform fmt
 
       - name: Terraform Init
-        id: init
-        run: terraform init -upgrade && export TF_LOG=TRACE
-        
-      - name: show env var
-        ## show env variable
-        run: echo "The ACCESS KEY is:${{secrets.TF_USER_AWS_ACCESS_KEY}}" 
-      
+        run: terraform init
+
       - name: Terraform Validate
-        id: validate
-        run: terraform validate -no-color
+        run: terraform validate
 
       - name: Terraform Plan
-        id: plan
         run: terraform plan
-        
+
       - name: Terraform Apply
-        id: apply
-        #if: github.event_name == 'pull_request'
         run: terraform apply -auto-approve
-        #continue-on-error: true
-        #run: output=$(terraform output csvdata)
-        
-        
-      - name: Terraform Plan Status
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
