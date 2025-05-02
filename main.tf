@@ -60,6 +60,7 @@ resource "aws_iam_openid_connect_provider" "github" {
   thumbprint_list = ["74f3a68f16524f15424927704c9506f55a9316bd"] # GitHub's current thumbprint
 }
 
+# Define the IAM role without inline_policy
 resource "aws_iam_role" "github_oidc_role" {
   name = "GitHubActionsOIDCRole"
   assume_role_policy = jsonencode({
@@ -68,7 +69,7 @@ resource "aws_iam_role" "github_oidc_role" {
       {
         Effect = "Allow"
         Principal = {
-          Federated = "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com"
+          Federated = "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
@@ -82,24 +83,20 @@ resource "aws_iam_role" "github_oidc_role" {
       }
     ]
   })
+}
 
-  # Add this inline policy to grant the necessary permission
-  inline_policy {
-    name = "list-role-policies"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Effect   = "Allow"
-          Action   = [
-            "iam:ListRolePolicies",
-            "iam:GetRole"
-          ]
-          Resource = "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
-        }
-      ]
-    })
-  }
-
-  # Include any other existing policies or configurations here
+# Define the inline policy separately
+resource "aws_iam_role_policy" "github_oidc_policy" {
+  name = "list-role-policies"
+  role = aws_iam_role.github_oidc_role.name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "iam:ListRolePolicies"
+        Resource = "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
+      }
+    ]
+  })
 }
