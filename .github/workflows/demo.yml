@@ -49,9 +49,9 @@ jobs:
         id: validate
         run: terraform validate -no-color
 
-      # - name: Terraform Plan
-      #   id: plan
-      #   run: terraform plan
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan
         
       # - name: Terraform Apply
       #   id: apply
