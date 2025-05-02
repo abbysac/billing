@@ -96,7 +96,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
         Action = [
           "s3:ListAllMyBuckets",
           "s3:GetObject",
-          "sts:GetCallerIdentity"
+          "sts:GetCallerIdentity",
+          "iam:GetRole"
         ]
         Resource = "*"
       },
