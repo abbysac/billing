@@ -90,10 +90,16 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["s3:ListAllMyBuckets", "s3:GetObject", "sts:GetCallerIdentity"]
-      Resource = "*"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListAllMyBuckets",
+          "s3:GetObject",
+          "sts:GetCallerIdentity"
+        ]
+        Resource = "*"
+      },
       {
         Effect = "Allow"
         Action = [
@@ -101,6 +107,6 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
         ]
         Resource = "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com"
       }
-    }]
+    ]
   })
 }
