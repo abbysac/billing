@@ -99,7 +99,7 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "sts:GetCallerIdentity",
           
         ]
-        Resource = "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com"
+        Resource = "*"
       },
       {
         Effect = "Allow"
@@ -109,7 +109,10 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "iam:ListRolePolicies",
           "iam:GetRolePolicy"
         ]
-        Resource = "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com"
+        Resource = [
+            "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole", 
+            "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com"
+        ]
       }
     ]
   })
