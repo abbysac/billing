@@ -96,7 +96,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
         Effect   = "Allow"
         Action   = [
             "iam:ListRolePolicies",
-            "iam:GetOpenIDConnectProvider"
+            "iam:GetOpenIDConnectProvider",
+            "iam:GetRole"
         ]
         Resource = "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com"
       }
