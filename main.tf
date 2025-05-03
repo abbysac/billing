@@ -121,7 +121,8 @@ resource "aws_iam_policy" "budgets_view_policy" {
         Action   = [
             "budgets:ViewBudget",
             "iam:GetPolicy",
-            "iam:GetPolicyVersion"
+            "iam:GetPolicyVersion",
+            "budgets:ListTagsForResource"
         ]
         Resource =  "*"  #"arn:aws:budgets::data.aws_caller_identity.current.224761220970:budget/*"
       }
