@@ -98,7 +98,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
             "iam:ListRolePolicies",
             "iam:GetOpenIDConnectProvider",
             "iam:GetRole",
-            "iam:GetRolePolicy"
+            "iam:GetRolePolicy",
+            "iam:ListAttachedRolePolicies"
         ]
         Resource = [
             "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole",      
@@ -108,3 +109,28 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
     ]
   })
 }
+
+resource "aws_iam_policy" "budgets_view_policy" {
+  name        = "budgets-view-policy"
+  description = "Allows viewing AWS Budgets"
+  policy      = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "budgets:ViewBudget"
+        Resource =  "*"  #"arn:aws:budgets::data.aws_caller_identity.current.224761220970:budget/*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "budgets_view_attachment" {
+  role       = aws_iam_role.github_oidc_role.name
+  policy_arn = aws_iam_policy.budgets_view_policy.arn
+}
+
+# Get the current AWS account ID dynamically
+data "aws_caller_identity" "current" {}
+
+# account_id = data.aws_caller_identity.current.account_id
