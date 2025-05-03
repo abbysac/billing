@@ -97,7 +97,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
         Action   = [
             "iam:ListRolePolicies",
             "iam:GetOpenIDConnectProvider",
-            "iam:GetRole"
+            "iam:GetRole",
+            "iam:GetRolePolicy"
         ]
         Resource = [
             "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole",      
