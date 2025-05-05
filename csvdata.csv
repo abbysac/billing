@@ -1,5 +1,0 @@
-
-AWSAccountNumber,BudgetName,Period,StartMonth,EndMonth,BudgetAmount,BudgetScope,Alert1Threshold,Alert1Trigger,Alert1Emails,Alert2Threshold,Alert2Trigger,Alert2Emails,Alert3Threshold,Alert3Trigger,Alert3Emails,Alert4Threshold,Alert4Trigger,Alert4Emails
-224761220970,ABC Operations DEV Account Overall Budget,monthly,2025-03-01_00:00,2025-04-01_00:00,18,All AWS services (Recommended),50,ACTUAL,camleous@yahoo.com,75,ACTUAL,camleous@yahoo.com,100,ACTUAL,camleous@yahoo.com,100,FORECASTED,camleous@yahoo.com
-224761220970,ABC Operations PROD Account Overall Budget,monthly,2025-03-01_00:00,2025-04-01_00:00,19,All AWS services (Recommended),50,ACTUAL,camleous@yahoo.com,75,ACTUAL,camleous@yahoo.com,100,ACTUAL,camleous@yahoo.com,100,FORECASTED,camleous@yahoo.com
-224761220970,ABC Cloud Workloads FIN DEV Account Overall Budget,monthly,2025-03-01_00:00,2025-04-01_00:00,20,All AWS services (Recommended),50,ACTUAL,camleous@yahoo.com,75,ACTUAL,camleous@yahoo.com,100,ACTUAL,camleous@yahoo.com,100,FORECASTED,camleous@yahoo.com
