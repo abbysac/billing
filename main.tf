@@ -133,7 +133,8 @@ resource "aws_iam_policy" "budgets_view_policy" {
             "budgets:DescribeBudgetActionsForAccount",
             "budgets:DescribeBudgetPerformanceHistory",
             "budgets:DescribeBudgets",
-            "iam:CreatePolicyVersion"
+            "iam:CreatePolicyVersion",
+            "iam:GetRole"
            
         ]
         Resource =  "*"  #"arn:aws:budgets::data.aws_caller_identity.current.224761220970:budget/*"
