@@ -103,8 +103,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
             "iam:GetRolePolicy",
             "iam:ListAttachedRolePolicies",
             "lambda:GetFunction",
-            "lambda:ListVersionsByFunction",
-            "SNS:GetSubscriptionAttributes"
+            "lambda:ListVersionsByFunction"
+           
             
         ]
         Resource = [
@@ -141,7 +141,8 @@ resource "aws_iam_policy" "budgets_view_policy" {
             "iam:ListRolePolicies",
             "iam:ListAttachedRolePolicies",
             "iam:ListEntitiesForPolicy",
-            "lambda:GetFunctionCodeSigningConfig"
+            "lambda:GetFunctionCodeSigningConfig",
+            "SNS:GetSubscriptionAttributes"
             
            
         ]
