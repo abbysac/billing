@@ -4,11 +4,11 @@ import os
 
 ses = boto3.client('ses')
 
-# SENDER_EMAIL = "abbysac@gmail.com"  # SES-verified email
-# RECIPIENT_EMAIL = "camleous@yahoo.com"
+SENDER_EMAIL = "abbysac@gmail.com"  # SES-verified email
+RECIPIENT_EMAIL = "camleous@yahoo.com"
 
-SENDER_EMAIL = os.environ['SENDER_EMAIL']
-RECIPIENT_EMAILS = os.environ['RECIPIENT_EMAILS'].split(',')
+# SENDER_EMAIL = os.environ['SENDER_EMAIL']
+# RECIPIENT_EMAILS = os.environ['RECIPIENT_EMAILS'].split(',')
 
 
 def lambda_handler(event, context):
