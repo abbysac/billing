@@ -249,3 +249,11 @@ resource "aws_cloudwatch_log_group" "lambda" {
 # resource "aws_s3_bucket" "my_bucket" {
 #   bucket = "my-import-bucket234"
 # }
+
+resource "aws_lambda_permission" "allow_sns" {
+  statement_id  = "AllowExecutionFromSNS"
+  action        = "lambda:InvokeFunction"
+  function_name = "budget_update_gha_alert"
+  principal     = "sns.amazonaws.com"
+  source_arn    = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
+}
