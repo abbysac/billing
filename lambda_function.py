@@ -10,23 +10,60 @@ ses = boto3.client('ses')
 SENDER_EMAIL = os.environ['SENDER_EMAIL']
 RECIPIENT_EMAILS = os.environ['RECIPIENT_EMAILS'].split(',')
 
+
 def lambda_handler(event, context):
-    print("Received event:", json.dumps(event))
+    print("Received Event:", json.dumps(event, indent=2))
 
-    if 'Records' not in event:
-        return {"statusCode": 400, "body": "No SNS Records found in the event."}
+    # Extract SNS message
+    if "Records" in event and isinstance(event["Records"], list):
+        try:
+            sns_message = event["Records"][0]["Sns"]["Message"]
+            message = json.loads(sns_message)
+        except (KeyError, IndexError, json.JSONDecodeError) as e:
+            print(f"Error parsing SNS message: {str(e)}")
+            return {"statusCode": 400, "body": "Invalid SNS event format"}
+    else:
+        print("Direct Budget event received, using raw event.")
+        message = event
 
-    for record in event['Records']:
-        message = record['Sns']['Message']
-        subject = record['Sns'].get('Subject', 'AWS Budget Alert')
+    # Extract budget details
+    budget_name = message.get("budgetName", "billing-alert")
+    alert_type = message.get("alertType", "ACTUAL")
+    amount = message.get("amount", "2.00")
 
-        ses.send_email(
-            Source=SENDER_EMAIL,
-            Destination={'ToAddresses': RECIPIENT_EMAILS},
-            Message={
-                'Subject': {'Data': subject},
-                'Body': {'Text': {'Data': message}}
+    subject = f"AWS Budget Alert: {budget_name}"
+    body = f"""224761220970 , dev
+Dear System Owner,
+
+This is to notify you that the actual cost accrued yesterday in “svcshubdev” has exceeded
+80% the amount of $1 daily value, based on a $4.00 monthly budget. Please verify your 
+current utilization and cost trajectory. If necessary, please update your annual budget in omfmgmt.
+
+Thank you,
+OMF CloudOps.
+
+Budget Name: {budget_name}
+Alert Type: {alert_type}
+Amount: ${amount}
+
+Full Message:
+{json.dumps(message, indent=2)}
+"""
+
+    # Send plain text email (no HTML, no templates)
+    response = ses.send_email(
+        Source=SENDER_EMAIL,
+        Destination={'ToAddresses': [RECIPIENT_EMAIL]},
+        Message={
+            'Subject': {'Data': subject},
+            'Body': {
+                'Text': {
+                    'Data': body,
+                    'Charset': 'UTF-8'
+                }
             }
-        )
+        }
+    )
 
-    return {"statusCode": 200, "body": "Email sent"}
+    print(f"Email sent! Message ID: {response['MessageId']}")
+    return {"statusCode": 200, "body": "Email sent successfully"}
