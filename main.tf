@@ -274,3 +274,9 @@ resource "aws_lambda_permission" "allow_sns" {
   principal     = "sns.amazonaws.com"
   source_arn    = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
 }
+
+resource "aws_sns_topic_subscription" "lambda_target" {
+  topic_arn = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
+  protocol  = "lambda"
+  endpoint  = "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
+}
