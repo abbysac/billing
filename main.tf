@@ -102,6 +102,7 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
             "iam:GetRole",
             "iam:GetRolePolicy",
             "iam:ListAttachedRolePolicies"
+            
         ]
         Resource = [
             "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole",      
@@ -127,7 +128,12 @@ resource "aws_iam_policy" "budgets_view_policy" {
             "budgets:ListTagsForResource",
             "lambda:GetPolicy",
             "logs:DescribeLogGroups",
-            "ListTagsForResource"
+            "logs:ListTagsForResource",
+            "budgets:DescribeBudgetActionsForAccount",
+            "budgets:DescribeBudgetPerformanceHistory",
+            "budgets:DescribeBudgets",
+            "iam:CreatePolicyVersion"
+           
         ]
         Resource =  "*"  #"arn:aws:budgets::data.aws_caller_identity.current.224761220970:budget/*"
       }
