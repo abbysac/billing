@@ -254,7 +254,8 @@ resource "aws_lambda_function" "test_lambda" {
 
   environment {
     variables = {
-      foo = "bar"
+      SENDER_EMAIL = "abbysac@gmail.com"
+      RECIPIENT_EMAILS = "camleous@yahoo.com"
     }
   }
 }
