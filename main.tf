@@ -101,7 +101,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
             "iam:GetOpenIDConnectProvider",
             "iam:GetRole",
             "iam:GetRolePolicy",
-            "iam:ListAttachedRolePolicies"
+            "iam:ListAttachedRolePolicies",
+            "lambda:GetFunction"
             
         ]
         Resource = [
