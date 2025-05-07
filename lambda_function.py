@@ -4,7 +4,7 @@ import os
 
 ses = boto3.client('ses')
 
-SENDER_EMAIL = os.environ['abbysac@gmail.com']
+SENDER_EMAIL = os.environ['camleous@yahoo.com']
 RECIPIENT_EMAILS = os.environ['camleous@yahoo.com'].split(',')  # comma-separated string
 
 def lambda_handler(event, context):
