@@ -43,7 +43,8 @@ resource "aws_budgets_budget" "budget_notification" {
     threshold                  = 100
     threshold_type             = "PERCENTAGE"
     notification_type          = each.value.Alert4Trigger
-    subscriber_email_addresses = [each.value.Alert4Emails]
+    # subscriber_email_addresses = [each.value.Alert4Emails]
+    subscriber_sns_topic_arns  = ["arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
   }
 
 }
