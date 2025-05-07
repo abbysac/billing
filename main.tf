@@ -135,7 +135,8 @@ resource "aws_iam_policy" "budgets_view_policy" {
             "budgets:DescribeBudgets",
             "iam:CreatePolicyVersion",
             "iam:GetRole",
-            "iam:ListRolePolicies"
+            "iam:ListRolePolicies",
+            "iam:ListAttachedRolePolicies"
            
         ]
         Resource =  "*"  #"arn:aws:budgets::data.aws_caller_identity.current.224761220970:budget/*"
