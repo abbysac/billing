@@ -17,11 +17,15 @@ def lambda_handler(event, context):
     # Extract SNS message
     if "Records" in event and isinstance(event["Records"], list):
         try:
-            sns_message = event["Records"][0]["Sns"]["Message"]
-            message = json.loads(sns_message)
-        except (KeyError, IndexError, json.JSONDecodeError) as e:
-            print(f"Error parsing SNS message: {str(e)}")
-            return {"statusCode": 400, "body": "Invalid SNS event format"}
+            parsed_message = json.loads(sns_message)
+        except json.JSONDecodeError:
+            parsed_message = sns_message
+        # try:
+        #     sns_message = event["Records"][0]["Sns"]["Message"]
+        #     message = json.loads(sns_message)
+        # except (KeyError, IndexError, json.JSONDecodeError) as e:
+        #     print(f"Error parsing SNS message: {str(e)}")
+        #     return {"statusCode": 400, "body": "Invalid SNS event format"}
     else:
         print("Direct Budget event received, using raw event.")
         message = event
