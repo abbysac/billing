@@ -46,7 +46,7 @@ resource "aws_budgets_budget" "budget_notification" {
 
   notification {
     comparison_operator        = "GREATER_THAN"
-    threshold                  = 80
+    threshold                  = 70
     threshold_type             = "PERCENTAGE"
     notification_type          = each.value.Alert4Trigger
     # subscriber_email_addresses = [each.value.Alert4Emails]
