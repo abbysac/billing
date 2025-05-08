@@ -1,66 +1,66 @@
 
-name: 'TerraformAWSBudgets'  
+# name: 'TerraformAWSBudgets'  
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-permissions:
-  id-token: write
-  contents: read
+# on:
+#   push:
+#     branches:
+#       - main
+#   pull_request:
+# permissions:
+#   id-token: write
+#   contents: read
 
-jobs:
-  TerraformAWSBudgets:
-    name: 'TerraformAWSBudgets'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+# jobs:
+#   TerraformAWSBudgets:
+#     name: 'TerraformAWSBudgets'
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v3
       
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v1
     
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1  # or your actual region
-          role-to-assume: arn:aws:iam::224761220970:role/GitHubActionsOIDCRole
-          # role-to-assume: arn:aws:iam::224761220970:role/GHA-OIDC
+#       - name: Configure AWS Credentials
+#         uses: aws-actions/configure-aws-credentials@v1
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           aws-region: us-east-1  # or your actual region
+#           role-to-assume: arn:aws:iam::224761220970:role/GitHubActionsOIDCRole
+#           # role-to-assume: arn:aws:iam::224761220970:role/GHA-OIDC
 
-      - name: Verify AWS CLI
-        run: aws sts get-caller-identity
+#       - name: Verify AWS CLI
+#         run: aws sts get-caller-identity
 
-      - name: Terraform Format
-        id: fmt
-        run: terraform fmt
+#       - name: Terraform Format
+#         id: fmt
+#         run: terraform fmt
 
-      - name: Terraform Init
-        id: init
-        run: terraform init -upgrade && export TF_LOG=TRACE
+#       - name: Terraform Init
+#         id: init
+#         run: terraform init -upgrade && export TF_LOG=TRACE
         
-      - name: show env var
-        ## show env variable
-        run: echo "The ACCESS KEY is:${{secrets.TF_USER_AWS_ACCESS_KEY}}" 
+#       - name: show env var
+#         ## show env variable
+#         run: echo "The ACCESS KEY is:${{secrets.TF_USER_AWS_ACCESS_KEY}}" 
       
-      - name: Terraform Validate
-        id: validate
-        run: terraform validate -no-color
+#       - name: Terraform Validate
+#         id: validate
+#         run: terraform validate -no-color
 
-      - name: Terraform Plan
-        id: plan
-        run: terraform plan
+#       - name: Terraform Plan
+#         id: plan
+#         run: terraform plan
         
-      - name: Terraform Apply
-        id: apply
-        #if: github.event_name == 'pull_request'
-        run: terraform apply -auto-approve
-        #continue-on-error: true
-        #run: output=$(terraform output csvdata)
+#       - name: Terraform Apply
+#         id: apply
+#         #if: github.event_name == 'pull_request'
+#         run: terraform apply -auto-approve
+#         #continue-on-error: true
+#         #run: output=$(terraform output csvdata)
         
         
-      - name: Terraform Plan Status
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
+#       - name: Terraform Plan Status
+#         if: steps.plan.outcome == 'failure'
+#         run: exit 1
