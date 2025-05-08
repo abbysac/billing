@@ -7,25 +7,24 @@ ses = boto3.client('ses', region_name="us-east-1")
 SENDER_EMAIL = "abbysac@gmail.com"  # SES-verified email
 RECIPIENT_EMAIL = "camleous@yahoo.com"
 
-# SENDER_EMAIL = os.environ['SENDER_EMAIL']
-# RECIPIENT_EMAILS = os.environ['RECIPIENT_EMAILS'].split(',')
-
 
 def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
 
+    message = {}
+
     # Extract SNS message
     if "Records" in event and isinstance(event["Records"], list):
         try:
-            parsed_message = json.loads(sns_message)
-        except json.JSONDecodeError:
-            parsed_message = sns_message
-        # try:
-        #     sns_message = event["Records"][0]["Sns"]["Message"]
-        #     message = json.loads(sns_message)
-        # except (KeyError, IndexError, json.JSONDecodeError) as e:
-        #     print(f"Error parsing SNS message: {str(e)}")
-        #     return {"statusCode": 400, "body": "Invalid SNS event format"}
+            sns_message = event["Records"][0]["Sns"]["Message"]
+            try:
+                message = json.loads(sns_message)
+            except json.JSONDecodeError:
+                print("SNS message is plain text, not JSON.")
+                message = {"rawMessage": sns_message}
+        except (KeyError, IndexError) as e:
+            print(f"Error extracting SNS message: {str(e)}")
+            return {"statusCode": 400, "body": "Invalid SNS event format"}
     else:
         print("Direct Budget event received, using raw event.")
         message = event
@@ -54,7 +53,7 @@ Full Message:
 {json.dumps(message, indent=2)}
 """
 
-    # Send plain text email (no HTML, no templates)
+    # Send plain text email
     response = ses.send_email(
         Source=SENDER_EMAIL,
         Destination={'ToAddresses': [RECIPIENT_EMAIL]},
@@ -69,5 +68,5 @@ Full Message:
         }
     )
 
-    print(f"Email sent! Message ID: {response['MessageId']}")
-    return {"statusCode": 200, "body": "Email sent successfully"}
+    print("Email sent! Message ID:", response["MessageId"])
+    return {"statusCode": 200, "body": "Email sent"}
