@@ -2,7 +2,7 @@ import json
 import boto3
 import os
 
-ses = boto3.client('ses')
+ses = boto3.client('ses', region_name="us-east-1")
 
 SENDER_EMAIL = "abbysac@gmail.com"  # SES-verified email
 RECIPIENT_EMAIL = "camleous@yahoo.com"
