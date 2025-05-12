@@ -1,8 +1,19 @@
-
-
 locals {
   csvfld = csvdecode(file("./csvdata.csv"))
+#   accounts = {
+#     for row in local.csvfld :
+#     "${row.AccountId}_${row.BudgetName}" => {
+#       account_id        = row.AccountId
+#       budget_name       = row.BudgetName
+#       budget_amount     = row.BudgetAmount
+#       alert_threshold   = row.Alert1Threshold
+#       alert_trigger     = row.Alert1Trigger
+#       sns_topic_arn     = row.SNSTopicArn
+#       linked_accounts   = contains(keys(row), "linked_accounts") ? jsondecode(row.linked_accounts) : []
+#     }
+#   }
 }
+
 
 resource "aws_budgets_budget" "budget_notification" {
   for_each          = { for BudgetName in local.csvfld : BudgetName.BudgetName => BudgetName }
@@ -16,7 +27,7 @@ resource "aws_budgets_budget" "budget_notification" {
 
   notification {
     comparison_operator        = "GREATER_THAN"
-    threshold                  = 70
+    threshold                  = each.value.Alert1Threshold
     threshold_type             = "PERCENTAGE"
     notification_type          = each.value.Alert1Trigger
     # subscriber_email_addresses = [each.value.Alert1Emails]
@@ -24,44 +35,44 @@ resource "aws_budgets_budget" "budget_notification" {
     
    
   }
-
-  # notification {
-  #   comparison_operator        = "GREATER_THAN"
-  #   threshold                  = 100
-  #   threshold_type             = "PERCENTAGE"
-  #   notification_type          = each.value.Alert2Trigger
-  #   # subscriber_email_addresses = [each.value.Alert2Emails]
-  #   subscriber_sns_topic_arns  = ["arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
+}
+#   # notification {
+#   #   comparison_operator        = "GREATER_THAN"
+#   #   threshold                  = 100
+#   #   threshold_type             = "PERCENTAGE"
+#   #   notification_type          = each.value.Alert2Trigger
+#   #   # subscriber_email_addresses = [each.value.Alert2Emails]
+#   #   subscriber_sns_topic_arns  = ["arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
     
-  # }
+#   # }
 
-  # notification {
-  #   comparison_operator        = "GREATER_THAN"
-  #   threshold                  = 100
-  #   threshold_type             = "PERCENTAGE"
-  #   notification_type          = each.value.Alert3Trigger
-  #   # subscriber_email_addresses = [each.value.Alert3Emails]
-  #   subscriber_sns_topic_arns  = ["arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
+#   # notification {
+#   #   comparison_operator        = "GREATER_THAN"
+#   #   threshold                  = 100
+#   #   threshold_type             = "PERCENTAGE"
+#   #   notification_type          = each.value.Alert3Trigger
+#   #   # subscriber_email_addresses = [each.value.Alert3Emails]
+#   #   subscriber_sns_topic_arns  = ["arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
     
-  # }
+#   # }
 
-  # notification {
-  #   comparison_operator        = "GREATER_THAN"
-  #   threshold                  = 70
-  #   threshold_type             = "PERCENTAGE"
-  #   notification_type          = each.value.Alert4Trigger
-  #   # subscriber_email_addresses = [each.value.Alert4Emails]
-  #   subscriber_sns_topic_arns  = ["arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
+#   # notification {
+#   #   comparison_operator        = "GREATER_THAN"
+#   #   threshold                  = 70
+#   #   threshold_type             = "PERCENTAGE"
+#   #   notification_type          = each.value.Alert4Trigger
+#   #   # subscriber_email_addresses = [each.value.Alert4Emails]
+#   #   subscriber_sns_topic_arns  = ["arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
     
   
-  # }
+#   # }
 
-}
+# # }
 
 
-output "csvdata" {
-  value = local.csvfld
-}
+# output "csvdata" {
+#   value = local.csvfld
+# }
 
 #1. OIDC provider for GitHub
 resource "aws_iam_openid_connect_provider" "github" {
@@ -293,3 +304,33 @@ resource "aws_sns_topic_subscription" "lambda_target" {
   protocol  = "lambda"
   endpoint  = "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
 }
+
+
+
+  
+
+# resource "aws_budgets_budget" "budget_notification" {
+#   for_each     = local.accounts
+#   name         = each.value.budget_name
+#   budget_type  = "COST"
+#   limit_amount = each.value.budget_amount
+#   limit_unit   = "USD"
+#   time_unit    = "MONTHLY"
+
+#   dynamic "cost_filter" {
+#   for_each = contains(keys(each.value), "linked_accounts") && length(each.value.linked_accounts) > 0 ? [1] : []
+#   content {
+#     name   = "LinkedAccount"
+#     values = each.value.linked_accounts
+#   }
+# }
+
+
+#   notification {
+#     comparison_operator        = "GREATER_THAN"
+#     threshold                  = each.value.alert_threshold
+#     threshold_type             = "PERCENTAGE"
+#     notification_type          = each.value.alert_trigger
+#     subscriber_sns_topic_arns  = [each.value.sns_topic_arn]
+#   }
+# }
