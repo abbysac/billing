@@ -36,15 +36,15 @@ resource "aws_budgets_budget" "budget_notification" {
    
   }
 }
-#   # notification {
-#   #   comparison_operator        = "GREATER_THAN"
-#   #   threshold                  = 100
-#   #   threshold_type             = "PERCENTAGE"
-#   #   notification_type          = each.value.Alert2Trigger
-#   #   # subscriber_email_addresses = [each.value.Alert2Emails]
-#   #   subscriber_sns_topic_arns  = ["arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
+  # notification {
+  #   comparison_operator        = "GREATER_THAN"
+  #   threshold                  = 100
+  #   threshold_type             = "PERCENTAGE"
+  #   notification_type          = each.value.Alert2Trigger
+  #   # subscriber_email_addresses = [each.value.Alert2Emails]
+  #   subscriber_sns_topic_arns  = ["arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
     
-#   # }
+  # }
 
 #   # notification {
 #   #   comparison_operator        = "GREATER_THAN"
@@ -530,7 +530,7 @@ def handler(event, context):
                     f'The budget "{event["BudgetName"]}" for account {account_id} has exceeded 80% of its limit. '
                     f'Actual spend: {actual_spend} USD, Budget limit: {budget_limit} USD.'
                 ),
-                Subject=f'Budget Alert: "{event["BudgetName"]}" Exceeded 80% for Account {account_id}'
+                Subject=f'Budget Alert: "{event["BudgetName"]}" Exceeded 70% for Account {account_id}'
             )
 
         results.append({
