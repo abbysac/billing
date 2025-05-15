@@ -166,7 +166,11 @@ resource "aws_iam_policy" "budgets_view_policy" {
             
            
         ]
-        Resource =  "*"  #"arn:aws:budgets::data.aws_caller_identity.current.224761220970:budget/*"
+        Resource = [
+
+              "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole",      
+              "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com"
+          ]  #"arn:aws:budgets::data.aws_caller_identity.current.224761220970:budget/*"
       }
     ]
   })
@@ -299,6 +303,13 @@ resource "aws_lambda_permission" "allow_sns" {
   source_arn    = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
 }
 
+resource "aws_lambda_permission" "allow_ssm" {
+  statement_id  = "AllowExecutionFromSSM"
+  action        = "lambda:InvokeFunction"
+  function_name = "budget_update_gha_alert"
+  principal     = "ssm.amazonaws.com"
+}
+
 resource "aws_sns_topic_subscription" "lambda_target" {
   topic_arn = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
   protocol  = "lambda"
@@ -306,8 +317,32 @@ resource "aws_sns_topic_subscription" "lambda_target" {
 }
 
 
+data "aws_iam_policy_document" "lambda_invoke_permission" {
+  statement {
+    effect = "Allow"
 
-  
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole"]
+    }
+
+    actions = [
+      "lambda:InvokeFunction"
+    ]
+
+    resources = [
+      "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
+    ]
+  }
+}
+
+
+
+
+
+
+  ##Use the aws_budgets_budget resource from the Terraform Registry to create budgets, 
+  ##leveraging the for_each meta-argument for iteration. In main.tf, add:
 
 # resource "aws_budgets_budget" "budget_notification" {
 #   for_each     = local.accounts
@@ -334,3 +369,198 @@ resource "aws_sns_topic_subscription" "lambda_target" {
 #     subscriber_sns_topic_arns  = [each.value.sns_topic_arn]
 #   }
 # }
+
+
+# IAM Role for SSM Automation in Management Account
+resource "aws_iam_role" "ssm_automation_admin" {
+  name = "AWS-SystemsManager-AutomationAdministrationRole"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [    
+        {
+          Effect    = "Allow"
+          Principal = {
+             Service = "ssm.amazonaws.com"
+            }
+          Action    = "sts:AssumeRole"
+        },
+         {
+        Effect = "Allow"
+        Principal = {
+          AWS = "*"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "ssm_automation_policy" {
+  name = "SSMAutomationPolicy"
+  role = aws_iam_role.ssm_automation_admin.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sts:AssumeRole",
+          "organizations:ListAccounts",
+          "sns:Publish",
+          "budgets:DescribeBudget",
+          "budgets:ViewBudget"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "ssm_lambda_invoke" {
+  name        = "SSMInvokeLambdaPolicy"
+  description = "Allow SSM automation role to invoke central budget Lambda"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "lambda:InvokeFunction"
+        ],
+        Resource = "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_ssm_lambda_invoke" {
+  role       = "AWS-SystemsManager-AutomationAdministrationRole"
+  policy_arn = aws_iam_policy.ssm_lambda_invoke.arn
+}
+
+
+
+
+resource "aws_ssm_document" "invoke_central_lambda" {
+  name          = "budget_update_gha_alert"
+  document_type = "Automation"
+
+  content = jsonencode({
+    schemaVersion = "0.3"
+    description   = "Assume role in target account and invoke central Lambda"
+
+    parameters = {
+      TargetAccountId = {
+        type    = "String"
+        default = "224761220970"
+      }
+      RoleName = {
+        type    = "String"
+        default = "AWS-SystemsManager-AutomationAdministrationRole"
+      }
+      LambdaFunctionName = {
+        type    = "String"
+        default = "budget_update_gha_alert"
+      }
+      AutomationAssumeRole = {
+        type    = "String"
+        default = "arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole"
+      }
+      SnsTopicArn = {
+        type    = "String"
+        default = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
+      }
+      BudgetName = {
+        type    = "String"
+        default = "ABC Operations DEV Account Overall Budget"
+      }
+    }
+
+    mainSteps = [
+      {
+        name   = "assumeRole"
+        action = "aws:executeAwsApi"
+        inputs = {
+          Service         = "sts"
+          Api             = "AssumeRole"
+          RoleArn         = "{{ AutomationAssumeRole }}"
+          RoleSessionName = "InvokeCentralLambdaSession"
+        }
+        outputs = [
+          { Name = "AccessKeyId", Selector = "$.Credentials.AccessKeyId", Type = "String" },
+          { Name = "SecretAccessKey", Selector = "$.Credentials.SecretAccessKey", Type = "String" },
+          { Name = "SessionToken", Selector = "$.Credentials.SessionToken", Type = "String" }
+        ]
+      },
+      {
+        name   = "invokeLambda"
+        action = "aws:executeScript"
+        inputs = {
+          Runtime = "python3.8"
+          Handler = "handler"
+          Script = <<EOF
+import boto3
+
+def handler(event, context):
+    results = []
+    account_id = event.get("TargetAccountId", "unknown")
+
+    try:
+        session = boto3.Session(
+            aws_access_key_id=event["Credentials"]["AccessKeyId"],
+            aws_secret_access_key=event["Credentials"]["SecretAccessKey"],
+            aws_session_token=event["Credentials"]["SessionToken"]
+        )
+
+        budgets = session.client("budgets")
+        sns = session.client("sns")
+
+        budget_response = budgets.describe_budget(
+            AccountId=account_id,
+            BudgetName=event["BudgetName"]
+        )
+
+        budget_limit = float(budget_response["Budget"]["BudgetLimit"]["Amount"])
+        actual_spend = float(budget_response["Budget"]["CalculatedSpend"]["ActualSpend"]["Amount"])
+
+        if actual_spend / budget_limit >= 0.8:
+            sns.publish(
+                TopicArn=event["SnsTopicArn"],
+                Message=(
+                    f'The budget "{event["BudgetName"]}" for account {account_id} has exceeded 80% of its limit. '
+                    f'Actual spend: {actual_spend} USD, Budget limit: {budget_limit} USD.'
+                ),
+                Subject=f'Budget Alert: "{event["BudgetName"]}" Exceeded 80% for Account {account_id}'
+            )
+
+        results.append({
+            "account_id": account_id,
+            "status": "checked",
+            "actual_spend": actual_spend,
+            "budget_limit": budget_limit
+        })
+
+    except Exception as e:
+        results.append({
+            "account_id": account_id,
+            "error": str(e)
+        })
+
+    return {"results": results}
+EOF
+
+          InputPayload = {
+            TargetAccountId = "{{ TargetAccountId }}"
+            BudgetName      = "{{ BudgetName }}"
+            SnsTopicArn     = "{{ SnsTopicArn }}"
+            Credentials = {
+              AccessKeyId     = "{{ assumeRole.AccessKeyId }}"
+              SecretAccessKey = "{{ assumeRole.SecretAccessKey }}"
+              SessionToken    = "{{ assumeRole.SessionToken }}"
+            }
+          }
+        }
+      }
+    ]
+  })
+}
