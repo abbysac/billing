@@ -180,9 +180,8 @@ resource "aws_iam_policy" "budgets_view_policy" {
         Resource = [
 
               "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole",      
-              "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com",
-              "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
-              "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget"
+              "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com"
+              
           ]  
           
           #"arn:aws:budgets::data.aws_caller_identity.current.224761220970:budget/*"
@@ -484,6 +483,27 @@ output "active_linked_accounts" {
 
 output "all_active_accounts" {
   value = local.all_accounts
+}
+
+
+resource "aws_iam_policy" "github_actions_policy" {
+  name        = "github-actions-iam-get-policy"
+  description = "Allows GitHub Actions to get IAM policy"
+  policy      = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = ["iam:GetPolicy", "iam:GetPolicyVersion"],
+        Resource = "arn:aws:iam::224761220970:policy/budgets-view-policy"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_github_actions_policy" {
+  role       = "GitHubActionsOIDCRole"
+  policy_arn = aws_iam_policy.github_actions_policy.arn
 }
 
 
