@@ -123,7 +123,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
             "iam:GetRolePolicy",
             "iam:ListAttachedRolePolicies",
             "lambda:GetFunction",
-            "lambda:ListVersionsByFunction"
+            "lambda:ListVersionsByFunction",
+            "iam:GetPolicy"
            
             
         ]
