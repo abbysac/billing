@@ -133,7 +133,16 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
             "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com",
             "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
         ]
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "iam:GetPolicy",
+          "iam:GetPolicyVersion"
+        ],
+        "Resource": "arn:aws:iam::224761220970:policy/budgets-view-policy"
       }
+
     ]
   })
 }
