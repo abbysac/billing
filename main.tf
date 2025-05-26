@@ -502,7 +502,7 @@ resource "aws_iam_policy" "github_actions_policy" {
       {
         Effect   = "Allow",
         Action   = ["iam:GetPolicy", "iam:GetPolicyVersion"],
-        Resource = "arn:aws:iam::224761220970:policy/budgets-view-policy"
+        Resource =  "*"   #"arn:aws:iam::224761220970:policy/budgets-view-policy"
       }
     ]
   })
