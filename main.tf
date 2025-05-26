@@ -164,14 +164,19 @@ resource "aws_iam_policy" "budgets_view_policy" {
             "iam:ListEntitiesForPolicy",
             "lambda:GetFunctionCodeSigningConfig",
             "SNS:GetSubscriptionAttributes"
+          
             
            
         ]
         Resource = [
 
               "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole",      
-              "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com"
-          ]  #"arn:aws:budgets::data.aws_caller_identity.current.224761220970:budget/*"
+              "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com"'
+              "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
+              "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget"
+          ]  
+          
+          #"arn:aws:budgets::data.aws_caller_identity.current.224761220970:budget/*"
       }
     ]
   })
