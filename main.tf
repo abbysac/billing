@@ -240,7 +240,10 @@ resource "aws_iam_policy" "policy" {
       },
       { "Sid" : "OidcAccess"
         "Effect" : "Allow",
-        "Action" : "iam:GetPolicy",
+        "Action" : [
+          "iam:GetPolicy",
+          "iam:GetPolicyVersion"
+        ], 
         "Resource" : "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
       }
     ]
