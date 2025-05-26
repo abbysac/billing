@@ -241,7 +241,7 @@ resource "aws_iam_policy" "policy" {
       { "Sid" : "OidcAccess"
         "Effect" : "Allow",
         "Action" : "iam:GetPolicy",
-        "Resource" : "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole/GitHubActions"
+        "Resource" : "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
       }
     ]
   })
