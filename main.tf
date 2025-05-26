@@ -226,7 +226,8 @@ resource "aws_iam_policy" "policy" {
         "Action" : [
           "budgets:ViewBudget",
           "organizations:ListAccounts",
-          "ses:SendEmail"
+          "ses:SendEmail",
+          "iam:GetPolicy"
          
         ],
         "Resource" : [
