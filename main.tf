@@ -220,7 +220,7 @@ resource "aws_iam_policy" "policy" {
         "Action" : "sns:*",
         "Resource" : "*"
       },
-      { "Sid" : "SESFullAccess"
+      { "Sid" : "SESFullAccess",
         "Effect" : "Allow",
         "Action" : "ses:SendEmail",
         "Resource" : "*"
@@ -243,7 +243,7 @@ resource "aws_iam_policy" "policy" {
          
         ]
       },
-      { "Sid" : "OidcAccess"
+      { "Sid" : "OidcAccess",
         "Effect" : "Allow",
         "Action" : [
           "iam:GetPolicy",
