@@ -1,92 +1,103 @@
 import json
 import boto3
 import os
+import decimal
 
 ses = boto3.client('ses', region_name="us-east-1")
 
-# Environment variables for sender and recipient
-SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "abbysac@gmail.com")      # SES-verified sender
-RECIPIENT_EMAIL = os.environ.get("RECIPIENT_EMAIL", "camleous@yahoo.com")  # Can be comma-separated for multiple
+SENDER_EMAIL = "abbysac@gmail.com"  # SES-verified email
+RECIPIENT_EMAIL = "camleous@yahoo.com"
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, decimal.Decimal):
+            return float(obj)
+        return super().default(obj)
+
+def get_nested_value(d, path, default=0.0):
+    try:
+        for key in path:
+            d = d[key]
+        return float(d or 0)
+    except (KeyError, TypeError, ValueError):
+        return default
 
 def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
 
-    message = {}
-
-    # Extract SNS message if triggered by SNS
+    # Extract SNS message
     if "Records" in event and isinstance(event["Records"], list):
         try:
             sns_message = event["Records"][0]["Sns"]["Message"]
-            try:
-                message = json.loads(sns_message)
-            except json.JSONDecodeError:
-                print("SNS message is plain text, not JSON.")
-                message = {"rawMessage": sns_message}
-        except (KeyError, IndexError) as e:
-            print(f"Error extracting SNS message: {str(e)}")
+            message = json.loads(sns_message)
+        except (KeyError, IndexError, json.JSONDecodeError) as e:
+            print(f"Error parsing SNS message: {str(e)}")
             return {"statusCode": 400, "body": "Invalid SNS event format"}
     else:
         print("Direct Budget event received, using raw event.")
         message = event
 
-    # Extract metadata
-    budget_name = message.get("budgetName", "billing-alert")
+    environment = message.get("environment", "dev")
+    account_id = message.get("accountId", "")
+    budget_name = message.get("budgetName") or message.get("BudgetName") or  "Unknown Budget" 
     alert_type = message.get("alertType", "ACTUAL")
-    account_id = message.get("accountId", "224761220970","752338767189")
-    environment = message.get("environment", "dev","stage","prod")
 
-    # Extract actual spend and budget limit dynamically
-    try:
-        actual_spend = float(message.get("CalculatedSpend", {}).get("ActualSpend", {}).get("Amount", 0.0))
-        budget_limit = float(message.get("BudgetLimit", {}).get("Amount", 1.0))  # fallback to avoid ZeroDivisionError
-        percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0
-        amount = f"{actual_spend:.2f}"
-    except Exception as e:
-        print("Error calculating amount from message:", str(e))
-        actual_spend = 0.0
-        budget_limit = 1.0
-        percentage_used = 0
-        amount = message.get("amount", "2.00")
+    # Get budget limit and actual spend safely
+    budget_limit = get_nested_value(message, ["BudgetLimit", "Amount"])
+    actual_spend = get_nested_value(message, ["CalculatedSpend", "ActualSpend", "Amount"])
+    percent_used = (actual_spend / budget_limit * 100) if budget_limit else 0.0
+    # print("Raw message payload:", json.dumps(message, indent=2))
 
-    subject = f"AWS Budget Alert: {budget_name} (Account: {account_id})"
 
-    body = f"""{account_id}, {environment}
+    subject = f"AWS Budget Alert: {budget_name}"
 
+    if budget_limit > 0:
+        threshold_info = (
+            f'The actual cost accrued yesterday in "{environment}" has exceeded '
+            f"{percent_used:.1f}% of the monthly budget of ${budget_limit:.2f}.\n"
+            f"Current actual spend: ${actual_spend:.2f}."
+        )
+    else:
+        threshold_info = f"Actual spend recorded: ${actual_spend:.2f}, but no valid budget limit was found."
+
+    email_body = f"""
+{account_id} {budget_name}
 Dear System Owner,
 
-This is to notify you that the actual cost accrued yesterday in “{environment}” has exceeded
-{int(percentage_used)}% of the monthly budget of ${budget_limit:.2f}.
-Current actual spend: ${amount}
-
+#{threshold_info}
+this is to notify you that the actual cost accrued yesterday for "{budget_name} in "{environment}" has exceeded
+the percentage from the amount of daily value
 Please verify your current utilization and cost trajectory. If necessary, update your budget in OMFMgmt.
 
-Thank you,
+Thank you,  
 OMF CloudOps
 
-Budget Name: {budget_name}
-Alert Type: {alert_type}
+Budget Name: {budget_name}  
+Account ID:  
+Environment: {environment}
+budgetLimit: {budget_limit}
 
 Full Message:
-{json.dumps(message, indent=2)}
+{json.dumps(message, indent=2, cls=DecimalEncoder)}
 """
 
-    # Send email
     try:
         response = ses.send_email(
             Source=SENDER_EMAIL,
-            Destination={'ToAddresses': [e.strip() for e in RECIPIENT_EMAIL.split(",")]},
+            Destination={'ToAddresses': [RECIPIENT_EMAIL]},
             Message={
                 'Subject': {'Data': subject},
                 'Body': {
                     'Text': {
-                        'Data': body,
+                        'Data': email_body,
                         'Charset': 'UTF-8'
                     }
                 }
             }
         )
-        print("Email sent! Message ID:", response["MessageId"])
-        return {"statusCode": 200, "body": "Email sent successfully"}
+        print(f"Email sent! Message ID: {response['MessageId']}")
     except Exception as e:
-        print("Failed to send email:", str(e))
-        return {"statusCode": 500, "body": f"Email failed: {str(e)}"}
+        print(f"Failed to send email: {str(e)}")
+        return {"statusCode": 500, "body": "Failed to send email"}
+
+    return {"statusCode": 200, "body": "Email sent successfully"}

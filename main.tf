@@ -1,41 +1,41 @@
 locals {
   csvfld = csvdecode(file("./csvdata.csv"))
-#   accounts = {
-#     for row in local.csvfld :
-#     "${row.AccountId}_${row.BudgetName}" => {
-#       account_id        = row.AccountId
-#       budget_name       = row.BudgetName
-#       budget_amount     = row.BudgetAmount
-#       alert_threshold   = row.Alert1Threshold
-#       alert_trigger     = row.Alert1Trigger
-#       sns_topic_arn     = row.SNSTopicArn
-#       linked_accounts   = contains(keys(row), "linked_accounts") ? jsondecode(row.linked_accounts) : []
-#     }
-#   }
-}
-
-
-resource "aws_budgets_budget" "budget_notification" {
-  for_each          = { for BudgetName in local.csvfld : BudgetName.BudgetName => BudgetName }
-  name              = each.value.BudgetName
-  budget_type       = "COST"
-  limit_amount      = each.value.BudgetAmount
-  limit_unit        = "USD"
-#   time_period_start = each.value.StartMonth
-#   time_period_end   = each.value.EndMonth
-  time_unit         = "MONTHLY"
-
-  notification {
-    comparison_operator        = "GREATER_THAN"
-    threshold                  = each.value.Alert1Threshold
-    threshold_type             = "PERCENTAGE"
-    notification_type          = each.value.Alert1Trigger
-    # subscriber_email_addresses = [each.value.Alert1Emails]
-    subscriber_sns_topic_arns  = ["arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
-    
-   
+  accounts = {
+    for row in local.csvfld :
+    "${row.AccountId}_${row.BudgetName}" => {
+      account_id        = row.AccountId
+      budget_name       = row.BudgetName
+      budget_amount     = row.BudgetAmount
+      alert_threshold   = row.Alert1Threshold
+      alert_trigger     = row.Alert1Trigger
+      sns_topic_arn     = row.SNSTopicArn
+      linked_accounts   = contains(keys(row), "linked_accounts") ? jsondecode(row.linked_accounts) : []
+    }
   }
 }
+
+
+# resource "aws_budgets_budget" "budget_notification" {
+#   for_each          = { for BudgetName in local.csvfld : BudgetName.BudgetName => BudgetName }
+#   name              = each.value.BudgetName
+#   budget_type       = "COST"
+#   limit_amount      = each.value.BudgetAmount
+#   limit_unit        = "USD"
+# #   time_period_start = each.value.StartMonth
+# #   time_period_end   = each.value.EndMonth
+#   time_unit         = "MONTHLY"
+
+#   notification {
+#     comparison_operator        = "GREATER_THAN"
+#     threshold                  = each.value.Alert1Threshold
+#     threshold_type             = "PERCENTAGE"
+#     notification_type          = each.value.Alert1Trigger
+#     # subscriber_email_addresses = [each.value.Alert1Emails]
+#     subscriber_sns_topic_arns  = ["arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
+    
+   
+#   }
+# }
   # notification {
   #   comparison_operator        = "GREATER_THAN"
   #   threshold                  = 100
@@ -207,30 +207,20 @@ resource "aws_iam_policy" "policy" {
         "Resource" : "*"
       },
       {
-        "Sid" : "SMSAccessViaSNS",
+        "Sid" : "BudgetAccess",
         "Effect" : "Allow",
         "Action" : [
-          "sms-voice:DescribeVerifiedDestinationNumbers",
-          "sms-voice:CreateVerifiedDestinationNumber",
-          "sms-voice:SendDestinationNumberVerificationCode",
-          "sms-voice:SendTextMessage",
-          "sms-voice:DeleteVerifiedDestinationNumber",
-          "sms-voice:VerifyDestinationNumber",
-          "sms-voice:DescribeAccountAttributes",
-          "sms-voice:DescribeSpendLimits",
-          "sms-voice:DescribePhoneNumbers",
-          "sms-voice:SetTextMessageSpendLimitOverride",
-          "sms-voice:DescribeOptedOutNumbers",
-          "sms-voice:DeleteOptedOutNumber"
+          "budgets:ViewBudget",
+          "organizations:ListAccounts",
+          "ses:SendEmail"
+         
         ],
-        "Resource" : "*",
-        "Condition" : {
-          "StringEquals" : {
-            "aws:CalledViaLast" : [
-              "sns.amazonaws.com"
-            ]
-          }
-        }
+        "Resource" : [
+          
+         "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
+         "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
+         "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
+        ]
       }
     ]
   })
@@ -317,24 +307,24 @@ resource "aws_sns_topic_subscription" "lambda_target" {
 }
 
 
-data "aws_iam_policy_document" "lambda_invoke_permission" {
-  statement {
-    effect = "Allow"
+# data "aws_iam_policy_document" "lambda_invoke_permission" {
+#   statement {
+#     effect = "Allow"
 
-    principals {
-      type        = "AWS"
-      identifiers = ["arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole"]
-    }
+#     principals {
+#       type        = "AWS"
+#       identifiers = ["arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole"]
+#     }
 
-    actions = [
-      "lambda:InvokeFunction"
-    ]
+#     actions = [
+#       "lambda:InvokeFunction"
+#     ]
 
-    resources = [
-      "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
-    ]
-  }
-}
+#     resources = [
+#       "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
+#     ]
+#   }
+# }
 
 
 
@@ -344,31 +334,31 @@ data "aws_iam_policy_document" "lambda_invoke_permission" {
   ##Use the aws_budgets_budget resource from the Terraform Registry to create budgets, 
   ##leveraging the for_each meta-argument for iteration. In main.tf, add:
 
-# resource "aws_budgets_budget" "budget_notification" {
-#   for_each     = local.accounts
-#   name         = each.value.budget_name
-#   budget_type  = "COST"
-#   limit_amount = each.value.budget_amount
-#   limit_unit   = "USD"
-#   time_unit    = "MONTHLY"
+resource "aws_budgets_budget" "budget_notification" {
+  for_each     = local.accounts
+  name         = each.value.budget_name
+  budget_type  = "COST"
+  limit_amount = each.value.budget_amount
+  limit_unit   = "USD"
+  time_unit    = "MONTHLY"
 
-#   dynamic "cost_filter" {
-#   for_each = contains(keys(each.value), "linked_accounts") && length(each.value.linked_accounts) > 0 ? [1] : []
-#   content {
-#     name   = "LinkedAccount"
-#     values = each.value.linked_accounts
-#   }
-# }
+  dynamic "cost_filter" {
+  for_each = contains(keys(each.value), "linked_accounts") && length(each.value.linked_accounts) > 0 ? [1] : []
+  content {
+    name   = "LinkedAccount"
+    values = each.value.linked_accounts
+  }
+}
 
 
-#   notification {
-#     comparison_operator        = "GREATER_THAN"
-#     threshold                  = each.value.alert_threshold
-#     threshold_type             = "PERCENTAGE"
-#     notification_type          = each.value.alert_trigger
-#     subscriber_sns_topic_arns  = [each.value.sns_topic_arn]
-#   }
-# }
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = each.value.alert_threshold
+    threshold_type             = "PERCENTAGE"
+    notification_type          = each.value.alert_trigger
+    subscriber_sns_topic_arns  = [each.value.sns_topic_arn]
+  }
+}
 
 
 # IAM Role for SSM Automation in Management Account
@@ -386,8 +376,9 @@ resource "aws_iam_role" "ssm_automation_admin" {
         },
          {
         Effect = "Allow"
-        Principal = {
-          AWS = "*"
+        Principal = { 
+        AWS: "*"
+
         }
         Action = "sts:AssumeRole"
       }
@@ -406,12 +397,25 @@ resource "aws_iam_role_policy" "ssm_automation_policy" {
         Action = [
           "sts:AssumeRole",
           "organizations:ListAccounts",
-          "sns:Publish",
+          "organizations:DescribeOrganization",
+          "sns:Publish"
+          
+        ]
+        Resource = [
+           "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
+           "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
+           "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
+        ]
+      },
+       {
+        Effect = "Allow"
+        Action = [
           "budgets:DescribeBudget",
           "budgets:ViewBudget"
-        ]
+          
+        ],
         Resource = "*"
-      }
+       }
     ]
   })
 }
@@ -439,20 +443,46 @@ resource "aws_iam_role_policy_attachment" "attach_ssm_lambda_invoke" {
 }
 
 
+# data.tf
+
+# Retrieve the AWS Organization and its accounts
+data "aws_organizations_organization" "org" {}
+
+# Filter active accounts, excluding the management account if desired
+locals {
+  active_accounts = [
+    for account in data.aws_organizations_organization.org.accounts :
+    account.id
+    if account.status == "ACTIVE" && account.id != data.aws_organizations_organization.org.master_account_id
+  ]
+  all_accounts = [
+    for account in data.aws_organizations_organization.org.accounts :
+    account.id
+    if account.status == "ACTIVE"
+  ]
+}
+
+# Output for debugging
+output "active_linked_accounts" {
+  value = local.active_accounts
+}
+
+output "all_active_accounts" {
+  value = local.all_accounts
+}
 
 
 resource "aws_ssm_document" "invoke_central_lambda" {
   name          = "budget_update_gha_alert"
   document_type = "Automation"
-
   content = jsonencode({
     schemaVersion = "0.3"
     description   = "Assume role in target account and invoke central Lambda"
 
     parameters = {
       TargetAccountId = {
-        type    = "String"
-        default = "224761220970"
+        type = "String"
+        default =   "224761220970"
       }
       RoleName = {
         type    = "String"
@@ -472,7 +502,7 @@ resource "aws_ssm_document" "invoke_central_lambda" {
       }
       BudgetName = {
         type    = "String"
-        default = "ABC Operations DEV Account Overall Budget"
+        default =  "ABC Operations PROD Account Overall Budget" #"ABC Operations DEV Account Overall Budget"
       }
     }
 
@@ -499,58 +529,96 @@ resource "aws_ssm_document" "invoke_central_lambda" {
           Runtime = "python3.8"
           Handler = "handler"
           Script = <<EOF
+
 import boto3
+import json
+
+# def list_accounts_handler(event, context):
+#     org_client = boto3.client('organizations')
+
+#     accounts = []
+#     paginator = org_client.get_paginator('list_accounts')
+#     for page in paginator.paginate():
+#         for acct in page['Accounts']:
+#             accounts.append({
+#                 "Id" : acct["Id"],
+#                 "Name" : acct["Name"],
+#                 "Email": acct["Email"],
+#                 "Status": acct["Status"]
+#             })
+
+#     return {"accounts": accounts}
 
 def handler(event, context):
-    results = []
-    account_id = event.get("TargetAccountId", "unknown")
+  results = []
 
-    try:
-        session = boto3.Session(
-            aws_access_key_id=event["Credentials"]["AccessKeyId"],
-            aws_secret_access_key=event["Credentials"]["SecretAccessKey"],
-            aws_session_token=event["Credentials"]["SessionToken"]
+  account_id = event.get("AccountId")
+  budget_name = event.get("BudgetName")
+  threshold_percent = float(event.get("BudgetThresholdPercent", 80.0))
+  sns_topic_arn = event.get("SnsTopicArn", "")
+
+  print(f"Processing account: {account_id}, budget: {budget_name}, threshold: {threshold_percent}%")
+
+  if not all([account_id, budget_name, sns_topic_arn]):
+      results.append({
+          "account_id": account_id,
+          "error": "Missing required inputs: AccountId, BudgetName, or SnsTopicArn"
+        })
+      return {"results": results}
+
+  try:
+      session = boto3.Session(
+      aws_access_key_id=event["Credentials"]["AccessKeyId"],
+      aws_secret_access_key=event["Credentials"]["SecretAccessKey"],
+      aws_session_token=event["Credentials"]["SessionToken"]
+          )
+
+      budgets = session.client("budgets")
+      sns = session.client("sns")
+
+      response = budgets.describe_budget(
+      AccountId=account_id,
+      BudgetName=budget_name
         )
 
-        budgets = session.client("budgets")
-        sns = session.client("sns")
+      budget = response["Budget"]
+      budget_limit = float(budget["BudgetLimit"]["Amount"])
+      actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
+      percentage_used = (actual_spend / budget_limit) * 80 if budget_limit else 0
 
-        budget_response = budgets.describe_budget(
-            AccountId=account_id,
-            BudgetName=event["BudgetName"]
-        )
+      alert_triggered = percentage_used >= threshold_percent
 
-        budget_limit = float(budget_response["Budget"]["BudgetLimit"]["Amount"])
-        actual_spend = float(budget_response["Budget"]["CalculatedSpend"]["ActualSpend"]["Amount"])
+      if alert_triggered:
+        sns.publish(
+           TopicArn=event["SnsTopicArn"],
+            Message=json.dumps({
+              "account_id": account_id,
+              "budgetName": budget_name,
+              "amount": actual_spend,
+              "budgetLimit": budget_limit,
+              "threshold": threshold_percent,
+              "alertType": "ACTUAL",
+              "environment": "stage"
+              })
+              )
 
-        if actual_spend / budget_limit >= 0.8:
-            sns.publish(
-                TopicArn=event["SnsTopicArn"],
-                Message=(
-                    f'The budget "{event["BudgetName"]}" for account {account_id} has exceeded 80% of its limit. '
-                    f'Actual spend: {actual_spend} USD, Budget limit: {budget_limit} USD.'
-                ),
-                Subject=f'Budget Alert: "{event["BudgetName"]}" Exceeded 70% for Account {account_id}'
-            )
-
-        results.append({
-            "account_id": account_id,
-            "status": "checked",
-            "actual_spend": actual_spend,
-            "budget_limit": budget_limit
+      results.append({
+        "account_id": account_id,
+        "budget_limit": budget_limit,
+        "actual_spend": actual_spend,
+        "percent_used": percentage_used,
+        "alert_triggered": alert_triggered
         })
 
-    except Exception as e:
-        results.append({
-            "account_id": account_id,
-            "error": str(e)
-        })
+  except Exception as e:
+    results.append({"account_id": account_id, "error": str(e)})
 
-    return {"results": results}
+  return {"results": results}
+
 EOF
 
           InputPayload = {
-            TargetAccountId = "{{ TargetAccountId }}"
+            AccountId = "{{ TargetAccountId }}"
             BudgetName      = "{{ BudgetName }}"
             SnsTopicArn     = "{{ SnsTopicArn }}"
             Credentials = {
@@ -564,3 +632,9 @@ EOF
     ]
   })
 }
+
+
+ # "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
+            # "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget"
+            # ]
+
