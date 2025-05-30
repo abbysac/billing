@@ -554,7 +554,7 @@ resource "aws_ssm_document" "invoke_central_lambda" {
       }
       BudgetName = {
         type    = "String"
-        default =  "ABC Operations PROD Account Overall Budget" #"ABC Operations DEV Account Overall Budget"
+        default =  BudgetName #"ABC Operations PROD Account Overall Budget" #"ABC Operations DEV Account Overall Budget"
       }
     }
 
