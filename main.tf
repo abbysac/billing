@@ -580,7 +580,7 @@ resource "aws_ssm_document" "invoke_central_lambda" {
       }
       BudgetName = {
         type    = "String"
-        default = "ABC Operations DEV Account Overall Budget" #[for item in local.csvfld : item.BudgetName] #join(",", [for item in local.csvfld : item.BudgetName]) # local.csvfld.account.budget_name  #"ABC Operations PROD Account Overall Budget" #"ABC Operations DEV Account Overall Budget"
+        default = "ABC Operations DEV Account Overall Budget2" #[for item in local.csvfld : item.BudgetName] #join(",", [for item in local.csvfld : item.BudgetName]) # local.csvfld.account.budget_name  #"ABC Operations PROD Account Overall Budget" #"ABC Operations DEV Account Overall Budget"
       }
       BudgetThresholdPercent = {
         type    = "String"
