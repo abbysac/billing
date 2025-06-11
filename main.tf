@@ -172,8 +172,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "organizations:DescribeOrganization",
           "organizations:ListAccounts",
           "organizations:ListAccountsForParent",
-          "sts:AssumeRole",
-          "Organizations: ListRoots"
+          "sts:AssumeRole"
+
         ],
         "Resource" : "*"
       }
@@ -275,7 +275,8 @@ resource "aws_iam_policy" "policy" {
           # "budgets:ViewBudget",
           "organizations:ListAccounts",
           "organizations:DescribeOrganization",
-          "ses:SendEmail"
+          "ses:SendEmail",
+          "Organizations: ListRoots"
 
 
         ],
