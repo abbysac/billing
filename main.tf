@@ -184,7 +184,9 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "sts:AssumeRole",
           "Organizations:ListRoots",
           "organizations:ListOrganizationalUnitsForParent",
-          "Organizations:ListAWSServiceAccessForOrganization"
+          "Organizations:ListAWSServiceAccessForOrganization",
+          "iam:PutRolePolicy"
+
 
         ],
         "Resource" : "*"
