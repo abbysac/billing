@@ -270,17 +270,18 @@ resource "aws_iam_policy" "policy" {
         "Sid" : "BudgetAccess",
         "Effect" : "Allow",
         "Action" : [
-          "budgets:ViewBudget",
+          # "budgets:ViewBudget",
           "organizations:ListAccounts",
+          "organizations:DescribeOrganization",
           "ses:SendEmail"
 
 
         ],
         "Resource" : [
-
-          "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
-          "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
-          "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
+          "*"
+          # "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
+          # "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
+          # "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
 
         ]
       },
@@ -289,7 +290,9 @@ resource "aws_iam_policy" "policy" {
         "Action" : [
           "iam:GetPolicy",
           "iam:GetPolicyVersion",
-          "iam:ListEntitiesForPolicy"
+          "iam:ListEntitiesForPolicy",
+          "ses:SendEmail",
+          "budgets:ViewBudget"
         ],
         "Resource" : [
           "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole",
