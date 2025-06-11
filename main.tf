@@ -161,7 +161,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "Organizations:ListRoots",
           "lambda:UpdateFunctionCode",
           "ssm:UpdateDocument",
-          "iam:PutRolePolicy"
+          "iam:PutRolePolicy",
+          "budgets:ModifyBudget"
 
         ],
         "Resource" : [
