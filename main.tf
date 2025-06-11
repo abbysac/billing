@@ -151,7 +151,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "budgets:ViewBudget",
           "ssm:DescribeDocument",
           "SNS:GetSubscriptionAttributes",
-          "budgets:ListTagsForResource"
+          "budgets:ListTagsForResource",
+          "ssm:GetDocument"
         ],
         "Resource" : [
           "arn:aws:iam::224761220970:policy/budget_sns_gha_policy",
