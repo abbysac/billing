@@ -259,7 +259,8 @@ resource "aws_iam_policy" "policy" {
         "Effect" : "Allow",
         "Action" : [
           "iam:GetPolicy",
-          "iam:GetPolicyVersion"
+          "iam:GetPolicyVersion",
+          "iam:ListEntitiesForPolicy"
         ],
         "Resource" : [
           "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole",
