@@ -119,7 +119,6 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
         Action = [
           "iam:ListRolePolicies",
           "iam:GetOpenIDConnectProvider",
-          "iam:GetRole",
           "iam:GetRolePolicy",
           "iam:ListAttachedRolePolicies",
           "lambda:GetFunction",
@@ -139,9 +138,10 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
         "Effect" : "Allow",
         "Action" : [
           "iam:GetPolicy",
-          "iam:GetPolicyVersion"
+          "iam:GetPolicyVersion",
+          "iam:GetRole"
         ],
-        "Resource" : "*"
+        "Resource" : "arn:aws:iam::224761220970:role/lambda_budget_gha_role"
       }
 
     ]
@@ -220,6 +220,18 @@ resource "aws_iam_policy" "policy" {
         "Effect" : "Allow",
         "Action" : "ses:SendEmail",
         "Resource" : "*"
+      },
+      {
+        "Sid" : "AllowSSMAutomationExecution",
+        "Effect" : "Allow",
+        "Action" : [
+          "budgets:DescribeBudget",
+          "budgets:ViewBudget",
+          "sns:Publish"
+
+        ]
+
+        "Resource" : "arn:aws:ssm:us-east-1:224761220970:automation-definition/budget_update_gha_alert"
       },
       {
         "Sid" : "BudgetAccess",
@@ -319,7 +331,7 @@ resource "aws_cloudwatch_log_group" "lambda" {
 resource "aws_lambda_permission" "allow_sns" {
   statement_id  = "AllowExecutionFromSNS"
   action        = "lambda:InvokeFunction"
-  function_name = "budget_update_gha_alert"
+  function_name = aws_lambda_function.test_lambda.function_name #"budget_update_gha_alert"
   principal     = "sns.amazonaws.com"
   source_arn    = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
 }
@@ -332,30 +344,31 @@ resource "aws_lambda_permission" "allow_ssm" {
 }
 
 resource "aws_sns_topic_subscription" "lambda_target" {
-  topic_arn = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
-  protocol  = "lambda"
-  endpoint  = "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
+  topic_arn  = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
+  protocol   = "lambda"
+  endpoint   = "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
+  depends_on = [aws_lambda_permission.allow_sns]
 }
 
 
-# data "aws_iam_policy_document" "lambda_invoke_permission" {
-#   statement {
-#     effect = "Allow"
+data "aws_iam_policy_document" "lambda_invoke_permission" {
+  statement {
+    effect = "Allow"
 
-#     principals {
-#       type        = "AWS"
-#       identifiers = ["arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole"]
-#     }
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole"]
+    }
 
-#     actions = [
-#       "lambda:InvokeFunction"
-#     ]
+    actions = [
+      "lambda:InvokeFunction"
+    ]
 
-#     resources = [
-#       "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
-#     ]
-#   }
-# }
+    resources = [
+      "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
+    ]
+  }
+}
 
 
 
@@ -552,11 +565,20 @@ resource "aws_ssm_document" "invoke_central_lambda" {
         type    = "String"
         default = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
       }
+      Message = {
+        type    = "String"
+        default = "this is to notify you that you have exceeded your budget threshold"
+      }
       BudgetName = {
         type    = "StringList"
-        default = [for item in local.csvfld : item.BudgetName] #BudgetName #"ABC Operations PROD Account Overall Budget" #"ABC Operations DEV Account Overall Budget"
+        default = [for item in local.csvfld : item.BudgetName] #"ABC Operations PROD Account Overall Budget" #"ABC Operations DEV Account Overall Budget"
+      }
+      BudgetThresholdPercent = {
+        type    = "String"
+        default = "70.0" # Low threshold for testing
       }
     }
+
 
     mainSteps = [
       {
@@ -714,3 +736,9 @@ EOF
     ]
   })
 }
+
+
+# "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
+# "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget"
+# ]
+

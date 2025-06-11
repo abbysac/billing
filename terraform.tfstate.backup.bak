@@ -1,7 +1,11 @@
 {
   "version": 4,
   "terraform_version": "1.8.3",
-  "serial": 909,
+<<<<<<< HEAD
+  "serial": 906,
+=======
+  "serial": 1145,
+>>>>>>> d975ecfe8bd734dcc2029da4c5c65fe802c5e58c
   "lineage": "92c53e0a-01cd-6766-113e-a2014673bdef",
   "outputs": {
     "active_linked_accounts": {
@@ -49,16 +53,29 @@
           "attributes": {
             "exclude_symlink_directories": null,
             "excludes": null,
-            "id": "18403a7b2f8fe69960e739197270fbd8ba2845b2",
-            "output_base64sha256": "dAXuTfIuDbwG2w+ntL7X7aJlAzq8m2wHbrvKiInISOY=",
-            "output_base64sha512": "QlRcCSgxr447CZLDOCthjbPVoId1SKgLYXJICD4q6jB0qpzRg5D8m58gjux1SqXQpNDEp24Aor3nrUa5VhDing==",
+<<<<<<< HEAD
+            "id": "5a0cafc8407341a008363160626dbe9dc6bdb23b",
+            "output_base64sha256": "16zb560zxkz08JQVq4c+fKVbKdHJqZu5WXpQeSZyhWc=",
+            "output_base64sha512": "j5tgltOkGURQSTres7S6Apioe2dK/4dJq8rgQ4Eg94BMX3I3nZR7jvAyVt/WvN5Dk9AgE27wp7nRQSEGDc01Rg==",
             "output_file_mode": null,
-            "output_md5": "5bcf6bcd234855f79e76b4a8298e470f",
+            "output_md5": "fd4f18e27c7a49162a74327d5994a981",
             "output_path": "lambda_function.zip",
-            "output_sha": "18403a7b2f8fe69960e739197270fbd8ba2845b2",
-            "output_sha256": "7405ee4df22e0dbc06db0fa7b4bed7eda265033abc9b6c076ebbca8889c848e6",
-            "output_sha512": "42545c092831af8e3b0992c3382b618db3d5a0877548a80b617248083e2aea3074aa9cd18390fc9b9f208eec754aa5d0a4d0c4a76e00a2bde7ad46b95610e29e",
-            "output_size": 1433,
+            "output_sha": "5a0cafc8407341a008363160626dbe9dc6bdb23b",
+            "output_sha256": "d7acdbe7ad33c64cf4f09415ab873e7ca55b29d1c9a99bb9597a507926728567",
+            "output_sha512": "8f9b6096d3a4194450493adeb3b4ba0298a87b674aff8749abcae0438120f7804c5f72379d947b8ef03256dfd6bcde4393d020136ef0a7b9d14121060dcd3546",
+            "output_size": 1599,
+=======
+            "id": "f69825bb4e592da75d8ce7a82b821793a6feb9ed",
+            "output_base64sha256": "/euvLICkzBHuMet5L9yZt2su+a6MuDuDp4OZyeT542w=",
+            "output_base64sha512": "ADjdovfOs0lZZPTgFy6TeGJ7hyNQh3T/dypQ2S8JJ8AIerG46txg5QhHmYvcPtWmyhL6Z5qenj0ovwnb1gjG6g==",
+            "output_file_mode": null,
+            "output_md5": "62501a92a08079fb504676058fe13499",
+            "output_path": "lambda_function.zip",
+            "output_sha": "f69825bb4e592da75d8ce7a82b821793a6feb9ed",
+            "output_sha256": "fdebaf2c80a4cc11ee31eb792fdc99b76b2ef9ae8cb83b83a78399c9e4f9e36c",
+            "output_sha512": "0038dda2f7ceb3495964f4e0172e9378627b8723508774ff772a50d92f0927c0087ab1b8eadc60e50847998bdc3ed5a6ca12fa679a9e9e3d28bf09dbd608c6ea",
+            "output_size": 1415,
+>>>>>>> d975ecfe8bd734dcc2029da4c5c65fe802c5e58c
             "source": [],
             "source_content": null,
             "source_content_filename": null,
@@ -240,11 +257,11 @@
       "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
       "instances": [
         {
-          "index_key": "224761220970_ABC Operations DEV Account Overall Budget2",
+          "index_key": "224761220970_ABC Operations DEV Account Overall Budget",
           "schema_version": 0,
           "attributes": {
             "account_id": "224761220970",
-            "arn": "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget2",
+            "arn": "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
             "auto_adjust_data": [],
             "budget_type": "COST",
             "cost_filter": [
@@ -270,10 +287,10 @@
                 "use_blended": false
               }
             ],
-            "id": "224761220970:ABC Operations DEV Account Overall Budget2",
-            "limit_amount": "3.0",
+            "id": "224761220970:ABC Operations DEV Account Overall Budget",
+            "limit_amount": "4.0",
             "limit_unit": "USD",
-            "name": "ABC Operations DEV Account Overall Budget2",
+            "name": "ABC Operations DEV Account Overall Budget",
             "name_prefix": "",
             "notification": [
               {
@@ -283,7 +300,7 @@
                 "subscriber_sns_topic_arns": [
                   "arn:aws:sns:us-east-1:224761220970:budget-dev-alerts"
                 ],
-                "threshold": 60,
+                "threshold": 70,
                 "threshold_type": "PERCENTAGE"
               }
             ],
@@ -291,18 +308,18 @@
             "tags": {},
             "tags_all": {},
             "time_period_end": "2087-06-15_00:00",
-            "time_period_start": "2025-06-01_00:00",
+            "time_period_start": "2025-05-01_00:00",
             "time_unit": "MONTHLY"
           },
           "sensitive_attributes": [],
           "private": "bnVsbA=="
         },
         {
-          "index_key": "224761220970_ABC Operations PROD Account Overall Budget2",
+          "index_key": "224761220970_ABC Operations PROD Account Overall Budget",
           "schema_version": 0,
           "attributes": {
             "account_id": "224761220970",
-            "arn": "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget2",
+            "arn": "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
             "auto_adjust_data": [],
             "budget_type": "COST",
             "cost_filter": [
@@ -328,10 +345,10 @@
                 "use_blended": false
               }
             ],
-            "id": "224761220970:ABC Operations PROD Account Overall Budget2",
+            "id": "224761220970:ABC Operations PROD Account Overall Budget",
             "limit_amount": "0.001",
             "limit_unit": "USD",
-            "name": "ABC Operations PROD Account Overall Budget2",
+            "name": "ABC Operations PROD Account Overall Budget",
             "name_prefix": "",
             "notification": [
               {
@@ -349,7 +366,7 @@
             "tags": {},
             "tags_all": {},
             "time_period_end": "2087-06-15_00:00",
-            "time_period_start": "2025-06-01_00:00",
+            "time_period_start": "2025-05-01_00:00",
             "time_unit": "MONTHLY"
           },
           "sensitive_attributes": [],
@@ -476,7 +493,11 @@
             "name": "budget_sns_gha_policy",
             "name_prefix": "",
             "path": "/",
+<<<<<<< HEAD
+            "policy": "{\"Statement\":[{\"Action\":\"sns:*\",\"Effect\":\"Allow\",\"Resource\":\"*\",\"Sid\":\"SNSFullAccess\"},{\"Action\":\"ses:SendEmail\",\"Effect\":\"Allow\",\"Resource\":\"*\",\"Sid\":\"SESFullAccess\"},{\"Action\":[\"budgets:ViewBudget\",\"organizations:ListAccounts\",\"ses:SendEmail\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget\",\"arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget\",\"arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert\"],\"Sid\":\"BudgetAccess\"},{\"Action\":[\"iam:GetPolicy\",\"iam:GetPolicyVersion\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:iam::224761220970:role/GitHubActionsOIDCRole\",\"arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget\",\"arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget\",\"arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert\",\"arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com\"],\"Sid\":\"OidcAccess\"}],\"Version\":\"2012-10-17\"}",
+=======
             "policy": "{\"Statement\":[{\"Action\":\"sns:*\",\"Effect\":\"Allow\",\"Resource\":\"*\",\"Sid\":\"SNSFullAccess\"},{\"Action\":\"ses:SendEmail\",\"Effect\":\"Allow\",\"Resource\":\"*\",\"Sid\":\"SESFullAccess\"},{\"Action\":[\"budgets:DescribeBudget\",\"budgets:ViewBudget\",\"sns:Publish\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:ssm:us-east-1:224761220970:automation-definition/budget_update_gha_alert\",\"Sid\":\"AllowSSMAutomationExecution\"},{\"Action\":[\"budgets:ViewBudget\",\"organizations:ListAccounts\",\"ses:SendEmail\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget\",\"arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget\",\"arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert\"],\"Sid\":\"BudgetAccess\"},{\"Action\":[\"iam:GetPolicy\",\"iam:GetPolicyVersion\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:iam::224761220970:role/GitHubActionsOIDCRole\",\"arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget\",\"arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget\",\"arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert\",\"arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com\"],\"Sid\":\"OidcAccess\"}],\"Version\":\"2012-10-17\"}",
+>>>>>>> d975ecfe8bd734dcc2029da4c5c65fe802c5e58c
             "policy_id": "ANPATIVGQB5VEV75QMMEV",
             "tags": {},
             "tags_all": {}
@@ -557,7 +578,7 @@
             "inline_policy": [
               {
                 "name": "list-role-policies",
-                "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"iam:ListRolePolicies\",\"iam:GetOpenIDConnectProvider\",\"iam:GetRolePolicy\",\"iam:ListAttachedRolePolicies\",\"lambda:GetFunction\",\"lambda:ListVersionsByFunction\",\"iam:GetPolicy\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:iam::224761220970:role/GitHubActionsOIDCRole\",\"arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com\",\"arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert\",\"arn:aws:iam::224761220970:policy/budgets-view-policy\"]},{\"Action\":[\"iam:GetPolicy\",\"iam:GetPolicyVersion\",\"iam:GetRole\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:iam::224761220970:role/lambda_budget_gha_role\"}]}"
+                "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"iam:ListRolePolicies\",\"iam:GetOpenIDConnectProvider\",\"iam:GetRole\",\"iam:GetRolePolicy\",\"iam:ListAttachedRolePolicies\",\"lambda:GetFunction\",\"lambda:ListVersionsByFunction\",\"iam:GetPolicy\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:iam::224761220970:role/GitHubActionsOIDCRole\",\"arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com\",\"arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert\",\"arn:aws:iam::224761220970:policy/budgets-view-policy\"]},{\"Action\":[\"iam:GetPolicy\",\"iam:GetPolicyVersion\"],\"Effect\":\"Allow\",\"Resource\":\"*\"}]}"
               }
             ],
             "managed_policy_arns": [
@@ -639,7 +660,7 @@
             "inline_policy": [
               {
                 "name": "SSMAutomationPolicy",
-                "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"sts:AssumeRole\",\"organizations:ListAccounts\",\"organizations:DescribeOrganization\",\"sns:Publish\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget\",\"arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget\",\"arn:aws:sns:us-east-1:224761220970:budget-updates-topic\"]},{\"Action\":[\"budgets:DescribeBudget\",\"budgets:ViewBudget\"],\"Effect\":\"Allow\",\"Resource\":\"*\"}]}"
+                "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"sts:AssumeRole\",\"organizations:ListAccounts\",\"organizations:DescribeOrganization\",\"sns:Publish\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:sns:us-east-1:224761220970:budget-updates-topic\"]},{\"Action\":[\"budgets:DescribeBudget\",\"budgets:ViewBudget\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:budgets::224761220970:budget/*\",\"arn:aws:sns:us-east-1:224761220970:budget-updates-topic\"]},{\"Action\":\"ssm:StartAutomationExecution\",\"Effect\":\"Allow\",\"Resource\":\"arn:aws:ssm:us-east-1:224761220970:automation-definition/budget_update_gha_alert:$DEFAULT\"}]}"
               }
             ],
             "managed_policy_arns": [
@@ -671,7 +692,7 @@
             "id": "GitHubActionsOIDCRole:list-role-policies",
             "name": "list-role-policies",
             "name_prefix": "",
-            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"iam:ListRolePolicies\",\"iam:GetOpenIDConnectProvider\",\"iam:GetRolePolicy\",\"iam:ListAttachedRolePolicies\",\"lambda:GetFunction\",\"lambda:ListVersionsByFunction\",\"iam:GetPolicy\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:iam::224761220970:role/GitHubActionsOIDCRole\",\"arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com\",\"arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert\",\"arn:aws:iam::224761220970:policy/budgets-view-policy\"]},{\"Action\":[\"iam:GetPolicy\",\"iam:GetPolicyVersion\",\"iam:GetRole\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:iam::224761220970:role/lambda_budget_gha_role\"}]}",
+            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"iam:ListRolePolicies\",\"iam:GetOpenIDConnectProvider\",\"iam:GetRole\",\"iam:GetRolePolicy\",\"iam:ListAttachedRolePolicies\",\"lambda:GetFunction\",\"lambda:ListVersionsByFunction\",\"iam:GetPolicy\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:iam::224761220970:role/GitHubActionsOIDCRole\",\"arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com\",\"arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert\",\"arn:aws:iam::224761220970:policy/budgets-view-policy\"]},{\"Action\":[\"iam:GetPolicy\",\"iam:GetPolicyVersion\"],\"Effect\":\"Allow\",\"Resource\":\"*\"}]}",
             "role": "GitHubActionsOIDCRole"
           },
           "sensitive_attributes": [],
@@ -695,7 +716,7 @@
             "id": "AWS-SystemsManager-AutomationAdministrationRole:SSMAutomationPolicy",
             "name": "SSMAutomationPolicy",
             "name_prefix": "",
-            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"sts:AssumeRole\",\"organizations:ListAccounts\",\"organizations:DescribeOrganization\",\"sns:Publish\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget\",\"arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget\",\"arn:aws:sns:us-east-1:224761220970:budget-updates-topic\"]},{\"Action\":[\"budgets:DescribeBudget\",\"budgets:ViewBudget\"],\"Effect\":\"Allow\",\"Resource\":\"*\"}]}",
+            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"sts:AssumeRole\",\"organizations:ListAccounts\",\"organizations:DescribeOrganization\",\"sns:Publish\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:sns:us-east-1:224761220970:budget-updates-topic\"]},{\"Action\":[\"budgets:DescribeBudget\",\"budgets:ViewBudget\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:budgets::224761220970:budget/*\",\"arn:aws:sns:us-east-1:224761220970:budget-updates-topic\"]},{\"Action\":\"ssm:StartAutomationExecution\",\"Effect\":\"Allow\",\"Resource\":\"arn:aws:ssm:us-east-1:224761220970:automation-definition/budget_update_gha_alert:$DEFAULT\"}]}",
             "role": "AWS-SystemsManager-AutomationAdministrationRole"
           },
           "sensitive_attributes": [],
@@ -784,7 +805,11 @@
               "x86_64"
             ],
             "arn": "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert",
-            "code_sha256": "dAXuTfIuDbwG2w+ntL7X7aJlAzq8m2wHbrvKiInISOY=",
+<<<<<<< HEAD
+            "code_sha256": "16zb560zxkz08JQVq4c+fKVbKdHJqZu5WXpQeSZyhWc=",
+=======
+            "code_sha256": "/euvLICkzBHuMet5L9yZt2su+a6MuDuDp4OZyeT542w=",
+>>>>>>> d975ecfe8bd734dcc2029da4c5c65fe802c5e58c
             "code_signing_config_arn": "",
             "dead_letter_config": [],
             "description": "",
@@ -810,7 +835,11 @@
             "image_uri": "",
             "invoke_arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert/invocations",
             "kms_key_arn": "",
-            "last_modified": "2025-06-11T04:09:07.000+0000",
+<<<<<<< HEAD
+            "last_modified": "2025-06-11T03:41:35.000+0000",
+=======
+            "last_modified": "2025-06-09T01:47:21.000+0000",
+>>>>>>> d975ecfe8bd734dcc2029da4c5c65fe802c5e58c
             "layers": [],
             "logging_config": [
               {
@@ -837,8 +866,13 @@
             "signing_profile_version_arn": "",
             "skip_destroy": false,
             "snap_start": [],
-            "source_code_hash": "dAXuTfIuDbwG2w+ntL7X7aJlAzq8m2wHbrvKiInISOY=",
-            "source_code_size": 1433,
+<<<<<<< HEAD
+            "source_code_hash": "16zb560zxkz08JQVq4c+fKVbKdHJqZu5WXpQeSZyhWc=",
+            "source_code_size": 1599,
+=======
+            "source_code_hash": "/euvLICkzBHuMet5L9yZt2su+a6MuDuDp4OZyeT542w=",
+            "source_code_size": 1415,
+>>>>>>> d975ecfe8bd734dcc2029da4c5c65fe802c5e58c
             "tags": {},
             "tags_all": {},
             "timeout": 3,
@@ -968,19 +1002,26 @@
           "attributes": {
             "arn": "arn:aws:ssm:us-east-1:224761220970:automation-definition/budget_update_gha_alert",
             "attachments_source": [],
-            "content": "{\"description\":\"Assume role in target account and invoke central Lambda\",\"mainSteps\":[{\"action\":\"aws:executeAwsApi\",\"inputs\":{\"Api\":\"AssumeRole\",\"RoleArn\":\"{{ AutomationAssumeRole }}\",\"RoleSessionName\":\"InvokeCentralLambdaSession\",\"Service\":\"sts\"},\"name\":\"assumeRole\",\"outputs\":[{\"Name\":\"AccessKeyId\",\"Selector\":\"$.Credentials.AccessKeyId\",\"Type\":\"String\"},{\"Name\":\"SecretAccessKey\",\"Selector\":\"$.Credentials.SecretAccessKey\",\"Type\":\"String\"},{\"Name\":\"SessionToken\",\"Selector\":\"$.Credentials.SessionToken\",\"Type\":\"String\"}]},{\"action\":\"aws:executeScript\",\"inputs\":{\"Handler\":\"handler\",\"InputPayload\":{\"AccountId\":\"{{ TargetAccountId }}\",\"BudgetName\":\"{{ BudgetName }}\",\"Credentials\":{\"AccessKeyId\":\"{{ assumeRole.AccessKeyId }}\",\"SecretAccessKey\":\"{{ assumeRole.SecretAccessKey }}\",\"SessionToken\":\"{{ assumeRole.SessionToken }}\"},\"SnsTopicArn\":\"{{ SnsTopicArn }}\"},\"Runtime\":\"python3.8\",\"Script\":\"\\r\\n\\r\\nimport boto3\\r\\nimport json\\r\\n\\r\\ndef handler(event, context):\\r\\n    results = []\\r\\n\\r\\n    account_id = event.get(\\\"AccountId\\\")\\r\\n    budget_names = event.get(\\\"BudgetName\\\")\\r\\n    threshold_percent = float(event.get(\\\"BudgetThresholdPercent\\\", 80.0))\\r\\n    sns_topic_arn = event.get(\\\"SnsTopicArn\\\", \\\"\\\")\\r\\n\\r\\n    print(f\\\"Input event: {json.dumps(event, indent=2)}\\\")\\r\\n    print(f\\\"Processing account: {account_id}, budgets: {budget_names}, threshold: {threshold_percent}%, sns_topic: {sns_topic_arn}\\\")\\r\\n\\r\\n    # Ensure budget_names is a list\\r\\n    if isinstance(budget_names, str):\\r\\n        budget_names = [budget_names]\\r\\n    elif not isinstance(budget_names, list) or not budget_names:\\r\\n        results.append({\\r\\n            \\\"account_id\\\": account_id,\\r\\n            \\\"error\\\": \\\"BudgetName must be a non-empty string or list\\\"\\r\\n        })\\r\\n        return {\\\"results\\\": results}\\r\\n\\r\\n    if not all([account_id, budget_names, sns_topic_arn]):\\r\\n        results.append({\\r\\n            \\\"account_id\\\": account_id,\\r\\n            \\\"error\\\": \\\"Missing required inputs: AccountId, BudgetName, or SnsTopicArn\\\"\\r\\n        })\\r\\n        return {\\\"results\\\": results}\\r\\n\\r\\n    try:\\r\\n        session = boto3.Session(\\r\\n            aws_access_key_id=event[\\\"Credentials\\\"][\\\"AccessKeyId\\\"],\\r\\n            aws_secret_access_key=event[\\\"Credentials\\\"][\\\"SecretAccessKey\\\"],\\r\\n            aws_session_token=event[\\\"Credentials\\\"][\\\"SessionToken\\\"]\\r\\n        )\\r\\n\\r\\n        budgets = session.client(\\\"budgets\\\")\\r\\n        sns = session.client(\\\"sns\\\")\\r\\n\\r\\n        for budget_name in budget_names:\\r\\n            if not isinstance(budget_name, str):\\r\\n                results.append({\\r\\n                    \\\"account_id\\\": account_id,\\r\\n                    \\\"budget_name\\\": budget_name,\\r\\n                    \\\"error\\\": f\\\"Invalid BudgetName: {budget_name} is not a string\\\"\\r\\n                })\\r\\n                continue\\r\\n\\r\\n            try:\\r\\n                print(f\\\"Describing budget: {budget_name}\\\")\\r\\n                response = budgets.describe_budget(\\r\\n                    AccountId=account_id,\\r\\n                    BudgetName=budget_name\\r\\n                )\\r\\n\\r\\n                budget = response[\\\"Budget\\\"]\\r\\n                budget_limit = float(budget[\\\"BudgetLimit\\\"][\\\"Amount\\\"])\\r\\n                actual_spend = float(budget[\\\"CalculatedSpend\\\"][\\\"ActualSpend\\\"][\\\"Amount\\\"])\\r\\n                percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0\\r\\n\\r\\n                print(f\\\"Budget: {budget_name}, Limit: {budget_limit}, Spend: {actual_spend}, Percent Used: {percentage_used:.2f}%\\\")\\r\\n\\r\\n                alert_triggered = percentage_used \\u003e= threshold_percent\\r\\n                print(f\\\"Alert triggered for {budget_name}: {alert_triggered}\\\")\\r\\n\\r\\n                if alert_triggered:\\r\\n                    print(f\\\"Threshold exceeded for {budget_name} ({percentage_used:.2f}%) - publishing to SNS\\\")\\r\\n                    try:\\r\\n                        sns_response = sns.publish(\\r\\n                            TopicArn=sns_topic_arn,\\r\\n                            Message=json.dumps({\\r\\n                                \\\"account_id\\\": account_id,\\r\\n                                \\\"budgetName\\\": budget_name,\\r\\n                                \\\"amount\\\": actual_spend,\\r\\n                                \\\"budgetLimit\\\": budget_limit,\\r\\n                                \\\"threshold\\\": threshold_percent,\\r\\n                                \\\"alertType\\\": \\\"ACTUAL\\\",\\r\\n                                \\\"environment\\\": \\\"stage\\\"\\r\\n                            })\\r\\n                        )\\r\\n                        print(f\\\"SNS published successfully for {budget_name}. MessageId: {sns_response['MessageId']}\\\")\\r\\n                    except Exception as sns_error:\\r\\n                        print(f\\\"SNS publish failed for {budget_name}: {str(sns_error)}\\\")\\r\\n                        results.append({\\r\\n                            \\\"account_id\\\": account_id,\\r\\n                            \\\"budget_name\\\": budget_name,\\r\\n                            \\\"error\\\": f\\\"SNS publish failed: {str(sns_error)}\\\"\\r\\n                        })\\r\\n                        continue\\r\\n\\r\\n                results.append({\\r\\n                    \\\"account_id\\\": account_id,\\r\\n                    \\\"budget_name\\\": budget_name,\\r\\n                    \\\"budget_limit\\\": budget_limit,\\r\\n                    \\\"actual_spend\\\": actual_spend,\\r\\n                    \\\"percent_used\\\": percentage_used,\\r\\n                    \\\"alert_triggered\\\": alert_triggered\\r\\n                })\\r\\n\\r\\n            except Exception as e:\\r\\n                print(f\\\"Error processing budget {budget_name}: {str(e)}\\\")\\r\\n                results.append({\\r\\n                    \\\"account_id\\\": account_id,\\r\\n                    \\\"budget_name\\\": budget_name,\\r\\n                    \\\"error\\\": str(e)\\r\\n                })\\r\\n\\r\\n    except Exception as e:\\r\\n        print(f\\\"General error: {str(e)}\\\")\\r\\n        results.append({\\\"account_id\\\": account_id, \\\"error\\\": str(e)})\\r\\n\\r\\n    print(f\\\"Final results: {json.dumps(results, indent=2)}\\\")\\r\\n    return {\\\"results\\\": results}\\r\\n\"},\"name\":\"invokeLambda\"}],\"parameters\":{\"AutomationAssumeRole\":{\"default\":\"arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole\",\"type\":\"String\"},\"BudgetName\":{\"default\":[\"ABC Operations DEV Account Overall Budget2\",\"ABC Operations PROD Account Overall Budget2\"],\"type\":\"StringList\"},\"BudgetThresholdPercent\":{\"default\":\"70.0\",\"type\":\"String\"},\"LambdaFunctionName\":{\"default\":\"budget_update_gha_alert\",\"type\":\"String\"},\"Message\":{\"default\":\"this is to notify you that you have exceeded your budget threshold\",\"type\":\"String\"},\"RoleName\":{\"default\":\"AWS-SystemsManager-AutomationAdministrationRole\",\"type\":\"String\"},\"SnsTopicArn\":{\"default\":\"arn:aws:sns:us-east-1:224761220970:budget-updates-topic\",\"type\":\"String\"},\"TargetAccountId\":{\"default\":\"224761220970\",\"type\":\"String\"}},\"schemaVersion\":\"0.3\"}",
-            "created_date": "2025-06-11T04:09:45Z",
-            "default_version": "73",
+<<<<<<< HEAD
+            "content": "{\"description\":\"Assume role in target account and invoke central Lambda\",\"mainSteps\":[{\"action\":\"aws:executeAwsApi\",\"inputs\":{\"Api\":\"AssumeRole\",\"RoleArn\":\"{{ AutomationAssumeRole }}\",\"RoleSessionName\":\"InvokeCentralLambdaSession\",\"Service\":\"sts\"},\"name\":\"assumeRole\",\"outputs\":[{\"Name\":\"AccessKeyId\",\"Selector\":\"$.Credentials.AccessKeyId\",\"Type\":\"String\"},{\"Name\":\"SecretAccessKey\",\"Selector\":\"$.Credentials.SecretAccessKey\",\"Type\":\"String\"},{\"Name\":\"SessionToken\",\"Selector\":\"$.Credentials.SessionToken\",\"Type\":\"String\"}]},{\"action\":\"aws:executeScript\",\"inputs\":{\"Handler\":\"handler\",\"InputPayload\":{\"AccountId\":\"{{ TargetAccountId }}\",\"BudgetName\":\"{{ BudgetName }}\",\"Credentials\":{\"AccessKeyId\":\"{{ assumeRole.AccessKeyId }}\",\"SecretAccessKey\":\"{{ assumeRole.SecretAccessKey }}\",\"SessionToken\":\"{{ assumeRole.SessionToken }}\"},\"SnsTopicArn\":\"{{ SnsTopicArn }}\"},\"Runtime\":\"python3.8\",\"Script\":\"\\r\\n\\r\\nimport boto3\\r\\nimport json\\r\\n\\r\\ndef handler(event, context):\\r\\n    results = []\\r\\n\\r\\n    account_id = event.get(\\\"AccountId\\\")\\r\\n    budget_names = event.get(\\\"BudgetName\\\")\\r\\n    threshold_percent = float(event.get(\\\"BudgetThresholdPercent\\\", 80.0))\\r\\n    sns_topic_arn = event.get(\\\"SnsTopicArn\\\", \\\"\\\")\\r\\n\\r\\n    print(f\\\"Input event: {json.dumps(event, indent=2)}\\\")\\r\\n    print(f\\\"Processing account: {account_id}, budgets: {budget_names}, threshold: {threshold_percent}%, sns_topic: {sns_topic_arn}\\\")\\r\\n\\r\\n    # Ensure budget_names is a list\\r\\n    if isinstance(budget_names, str):\\r\\n        budget_names = [budget_names]\\r\\n    elif not isinstance(budget_names, list) or not budget_names:\\r\\n        results.append({\\r\\n            \\\"account_id\\\": account_id,\\r\\n            \\\"error\\\": \\\"BudgetName must be a non-empty string or list\\\"\\r\\n        })\\r\\n        return {\\\"results\\\": results}\\r\\n\\r\\n    if not all([account_id, budget_names, sns_topic_arn]):\\r\\n        results.append({\\r\\n            \\\"account_id\\\": account_id,\\r\\n            \\\"error\\\": \\\"Missing required inputs: AccountId, BudgetName, or SnsTopicArn\\\"\\r\\n        })\\r\\n        return {\\\"results\\\": results}\\r\\n\\r\\n    try:\\r\\n        session = boto3.Session(\\r\\n            aws_access_key_id=event[\\\"Credentials\\\"][\\\"AccessKeyId\\\"],\\r\\n            aws_secret_access_key=event[\\\"Credentials\\\"][\\\"SecretAccessKey\\\"],\\r\\n            aws_session_token=event[\\\"Credentials\\\"][\\\"SessionToken\\\"]\\r\\n        )\\r\\n\\r\\n        budgets = session.client(\\\"budgets\\\")\\r\\n        sns = session.client(\\\"sns\\\")\\r\\n\\r\\n        for budget_name in budget_names:\\r\\n            if not isinstance(budget_name, str):\\r\\n                results.append({\\r\\n                    \\\"account_id\\\": account_id,\\r\\n                    \\\"budget_name\\\": budget_name,\\r\\n                    \\\"error\\\": f\\\"Invalid BudgetName: {budget_name} is not a string\\\"\\r\\n                })\\r\\n                continue\\r\\n\\r\\n            try:\\r\\n                print(f\\\"Describing budget: {budget_name}\\\")\\r\\n                response = budgets.describe_budget(\\r\\n                    AccountId=account_id,\\r\\n                    BudgetName=budget_name\\r\\n                )\\r\\n\\r\\n                budget = response[\\\"Budget\\\"]\\r\\n                budget_limit = float(budget[\\\"BudgetLimit\\\"][\\\"Amount\\\"])\\r\\n                actual_spend = float(budget[\\\"CalculatedSpend\\\"][\\\"ActualSpend\\\"][\\\"Amount\\\"])\\r\\n                percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0\\r\\n\\r\\n                print(f\\\"Budget: {budget_name}, Limit: {budget_limit}, Spend: {actual_spend}, Percent Used: {percentage_used:.2f}%\\\")\\r\\n\\r\\n                alert_triggered = percentage_used \\u003e= threshold_percent\\r\\n                print(f\\\"Alert triggered for {budget_name}: {alert_triggered}\\\")\\r\\n\\r\\n                if alert_triggered:\\r\\n                    print(f\\\"Threshold exceeded for {budget_name} ({percentage_used:.2f}%) - publishing to SNS\\\")\\r\\n                    try:\\r\\n                        sns_response = sns.publish(\\r\\n                            TopicArn=sns_topic_arn,\\r\\n                            Message=json.dumps({\\r\\n                                \\\"account_id\\\": account_id,\\r\\n                                \\\"budgetName\\\": budget_name,\\r\\n                                \\\"amount\\\": actual_spend,\\r\\n                                \\\"budgetLimit\\\": budget_limit,\\r\\n                                \\\"threshold\\\": threshold_percent,\\r\\n                                \\\"alertType\\\": \\\"ACTUAL\\\",\\r\\n                                \\\"environment\\\": \\\"stage\\\"\\r\\n                            })\\r\\n                        )\\r\\n                        print(f\\\"SNS published successfully for {budget_name}. MessageId: {sns_response['MessageId']}\\\")\\r\\n                    except Exception as sns_error:\\r\\n                        print(f\\\"SNS publish failed for {budget_name}: {str(sns_error)}\\\")\\r\\n                        results.append({\\r\\n                            \\\"account_id\\\": account_id,\\r\\n                            \\\"budget_name\\\": budget_name,\\r\\n                            \\\"error\\\": f\\\"SNS publish failed: {str(sns_error)}\\\"\\r\\n                        })\\r\\n                        continue\\r\\n\\r\\n                results.append({\\r\\n                    \\\"account_id\\\": account_id,\\r\\n                    \\\"budget_name\\\": budget_name,\\r\\n                    \\\"budget_limit\\\": budget_limit,\\r\\n                    \\\"actual_spend\\\": actual_spend,\\r\\n                    \\\"percent_used\\\": percentage_used,\\r\\n                    \\\"alert_triggered\\\": alert_triggered\\r\\n                })\\r\\n\\r\\n            except Exception as e:\\r\\n                print(f\\\"Error processing budget {budget_name}: {str(e)}\\\")\\r\\n                results.append({\\r\\n                    \\\"account_id\\\": account_id,\\r\\n                    \\\"budget_name\\\": budget_name,\\r\\n                    \\\"error\\\": str(e)\\r\\n                })\\r\\n\\r\\n    except Exception as e:\\r\\n        print(f\\\"General error: {str(e)}\\\")\\r\\n        results.append({\\\"account_id\\\": account_id, \\\"error\\\": str(e)})\\r\\n\\r\\n    print(f\\\"Final results: {json.dumps(results, indent=2)}\\\")\\r\\n    return {\\\"results\\\": results}\\r\\n\"},\"name\":\"invokeLambda\"}],\"parameters\":{\"AutomationAssumeRole\":{\"default\":\"arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole\",\"type\":\"String\"},\"BudgetName\":{\"default\":[\"ABC Operations DEV Account Overall Budget\",\"ABC Operations PROD Account Overall Budget\"],\"type\":\"String\"},\"LambdaFunctionName\":{\"default\":\"budget_update_gha_alert\",\"type\":\"String\"},\"RoleName\":{\"default\":\"AWS-SystemsManager-AutomationAdministrationRole\",\"type\":\"String\"},\"SnsTopicArn\":{\"default\":\"arn:aws:sns:us-east-1:224761220970:budget-updates-topic\",\"type\":\"String\"},\"TargetAccountId\":{\"default\":\"224761220970\",\"type\":\"String\"}},\"schemaVersion\":\"0.3\"}",
+=======
+            "content": "{\"description\":\"Assume role in target account and invoke central Lambda\",\"mainSteps\":[{\"action\":\"aws:executeAwsApi\",\"inputs\":{\"Api\":\"AssumeRole\",\"RoleArn\":\"{{ AutomationAssumeRole }}\",\"RoleSessionName\":\"InvokeCentralLambdaSession\",\"Service\":\"sts\"},\"name\":\"assumeRole\",\"outputs\":[{\"Name\":\"AccessKeyId\",\"Selector\":\"$.Credentials.AccessKeyId\",\"Type\":\"String\"},{\"Name\":\"SecretAccessKey\",\"Selector\":\"$.Credentials.SecretAccessKey\",\"Type\":\"String\"},{\"Name\":\"SessionToken\",\"Selector\":\"$.Credentials.SessionToken\",\"Type\":\"String\"}]},{\"action\":\"aws:executeScript\",\"inputs\":{\"Handler\":\"handler\",\"InputPayload\":{\"AccountId\":\"{{ TargetAccountId }}\",\"BudgetName\":\"{{ BudgetName }}\",\"Credentials\":{\"AccessKeyId\":\"{{ assumeRole.AccessKeyId }}\",\"SecretAccessKey\":\"{{ assumeRole.SecretAccessKey }}\",\"SessionToken\":\"{{ assumeRole.SessionToken }}\"},\"SnsTopicArn\":\"{{ SnsTopicArn }}\"},\"Runtime\":\"python3.8\",\"Script\":\"\\n\\nimport boto3\\nimport json\\n\\n# def list_accounts_handler(event, context):\\n#     org_client = boto3.client('organizations')\\n\\n#     accounts = []\\n#     paginator = org_client.get_paginator('list_accounts')\\n#     for page in paginator.paginate():\\n#         for acct in page['Accounts']:\\n#             accounts.append({\\n#                 \\\"Id\\\" : acct[\\\"Id\\\"],\\n#                 \\\"Name\\\" : acct[\\\"Name\\\"],\\n#                 \\\"Email\\\": acct[\\\"Email\\\"],\\n#                 \\\"Status\\\": acct[\\\"Status\\\"]\\n#             })\\n\\n#     return {\\\"accounts\\\": accounts}\\n\\ndef handler(event, context):\\n  results = []\\n\\n  account_id = event.get(\\\"AccountId\\\")\\n  budget_name = event.get(\\\"BudgetName\\\")\\n  threshold_percent = float(event.get(\\\"BudgetThresholdPercent\\\", 80.0))\\n  sns_topic_arn = event.get(\\\"SnsTopicArn\\\", \\\"\\\")\\n\\n  print(f\\\"Processing account: {account_id}, budget: {budget_name}, threshold: {threshold_percent}%\\\")\\n\\n  if not all([account_id, budget_name, sns_topic_arn]):\\n      results.append({\\n          \\\"account_id\\\": account_id,\\n          \\\"error\\\": \\\"Missing required inputs: AccountId, BudgetName, or SnsTopicArn\\\"\\n        })\\n      return {\\\"results\\\": results}\\n\\n  try:\\n      session = boto3.Session(\\n      aws_access_key_id=event[\\\"Credentials\\\"][\\\"AccessKeyId\\\"],\\n      aws_secret_access_key=event[\\\"Credentials\\\"][\\\"SecretAccessKey\\\"],\\n      aws_session_token=event[\\\"Credentials\\\"][\\\"SessionToken\\\"]\\n          )\\n\\n      budgets = session.client(\\\"budgets\\\")\\n      sns = session.client(\\\"sns\\\")\\n\\n      response = budgets.describe_budget(\\n      AccountId=account_id,\\n      BudgetName=budget_name\\n        )\\n\\n      budget = response[\\\"Budget\\\"]\\n      budget_limit = float(budget[\\\"BudgetLimit\\\"][\\\"Amount\\\"])\\n      actual_spend = float(budget[\\\"CalculatedSpend\\\"][\\\"ActualSpend\\\"][\\\"Amount\\\"])\\n      percentage_used = (actual_spend / budget_limit) * 80 if budget_limit else 0\\n\\n      alert_triggered = percentage_used \\u003e= threshold_percent\\n\\n      if alert_triggered:\\n        sns.publish(\\n           TopicArn=event[\\\"SnsTopicArn\\\"],\\n            Message=json.dumps({\\n              \\\"account_id\\\": account_id,\\n              \\\"budgetName\\\": budget_name,\\n              \\\"amount\\\": actual_spend,\\n              \\\"budgetLimit\\\": budget_limit,\\n              \\\"threshold\\\": threshold_percent,\\n              \\\"alertType\\\": \\\"ACTUAL\\\",\\n              \\\"environment\\\": \\\"stage\\\"\\n              })\\n              )\\n\\n      results.append({\\n        \\\"account_id\\\": account_id,\\n        \\\"budget_limit\\\": budget_limit,\\n        \\\"actual_spend\\\": actual_spend,\\n        \\\"percent_used\\\": percentage_used,\\n        \\\"alert_triggered\\\": alert_triggered\\n        })\\n\\n  except Exception as e:\\n    results.append({\\\"account_id\\\": account_id, \\\"error\\\": str(e)})\\n\\n  return {\\\"results\\\": results}\\n\\n\"},\"name\":\"invokeLambda\"}],\"parameters\":{\"AutomationAssumeRole\":{\"default\":\"arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole\",\"type\":\"String\"},\"BudgetName\":{\"default\":\"ABC Operations DEV Account Overall Budget\",\"type\":\"String\"},\"BudgetThresholdPercent\":{\"default\":\"70.0\",\"type\":\"String\"},\"LambdaFunctionName\":{\"default\":\"budget_update_gha_alert\",\"type\":\"String\"},\"Message\":{\"default\":\"this is to notify you that you have exceeded your budget threshold\",\"type\":\"String\"},\"RoleName\":{\"default\":\"AWS-SystemsManager-AutomationAdministrationRole\",\"type\":\"String\"},\"SnsTopicArn\":{\"default\":\"arn:aws:sns:us-east-1:224761220970:budget-updates-topic\",\"type\":\"String\"},\"TargetAccountId\":{\"default\":\"224761220970\",\"type\":\"String\"}},\"schemaVersion\":\"0.3\"}",
+>>>>>>> d975ecfe8bd734dcc2029da4c5c65fe802c5e58c
+            "created_date": "2025-06-11T02:51:40Z",
+            "default_version": "71",
             "description": "Assume role in target account and invoke central Lambda",
             "document_format": "JSON",
             "document_type": "Automation",
-            "document_version": "73",
-            "hash": "75bb447dcb5a92274260889f2437c61db3318a023cda3653d8834db0c69a96e8",
+            "document_version": "71",
+            "hash": "b2d1312f4ada4f2920c64e58b3bd323633397f7a26539215716061135a00a94c",
             "hash_type": "Sha256",
             "id": "budget_update_gha_alert",
-            "latest_version": "73",
+            "latest_version": "71",
             "name": "budget_update_gha_alert",
             "owner": "224761220970",
+<<<<<<< HEAD
+            "parameter": null,
+=======
             "parameter": [
               {
                 "default_value": "arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole",
@@ -989,10 +1030,10 @@
                 "type": "String"
               },
               {
-                "default_value": "[\"ABC Operations DEV Account Overall Budget2\",\"ABC Operations PROD Account Overall Budget2\"]",
+                "default_value": "ABC Operations DEV Account Overall Budget",
                 "description": "",
                 "name": "BudgetName",
-                "type": "StringList"
+                "type": "String"
               },
               {
                 "default_value": "70.0",
@@ -1031,6 +1072,7 @@
                 "type": "String"
               }
             ],
+>>>>>>> d975ecfe8bd734dcc2029da4c5c65fe802c5e58c
             "permissions": {},
             "platform_types": [
               "Windows",
