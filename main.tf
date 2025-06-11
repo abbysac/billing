@@ -165,7 +165,15 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "arn:aws:logs:us-east-1:224761220970:log-group::log-stream:*",
           "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
         ]
+      },
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "organizations:DescribeOrganization"
+        ],
+        "Resource" : "*"
       }
+
 
     ]
   })
