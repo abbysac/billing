@@ -153,7 +153,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "SNS:GetSubscriptionAttributes",
           "budgets:ListTagsForResource",
           "ssm:GetDocument",
-          "ssm:DescribeDocumentPermission"
+          "ssm:DescribeDocumentPermission",
+          "organizations:ListOrganizationalUnitsForParent"
         ],
         "Resource" : [
           "arn:aws:iam::224761220970:policy/budget_sns_gha_policy",
@@ -164,7 +165,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole",
           "arn:aws:ssm:us-east-1:224761220970:document/budget_update_gha_alert",
           "arn:aws:logs:us-east-1:224761220970:log-group::log-stream:*",
-          "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
+          "arn:aws:sns:us-east-1:224761220970:budget-updates-topic",
+          "arn:aws:organizations::224761220970:root/o-wdq8jdx6ev/r-rs6a",
         ]
       },
       {
