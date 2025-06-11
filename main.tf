@@ -129,10 +129,11 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
 
         ]
         Resource = [
-          "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole",
-          "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com",
-          "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert",
-          "arn:aws:iam::224761220970:policy/budgets-view-policy"
+          "*"
+          # "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole",
+          # "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com",
+          # "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert",
+          # "arn:aws:iam::224761220970:policy/budgets-view-policy"
         ]
       },
       {
@@ -163,17 +164,18 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
 
         ],
         "Resource" : [
-          "arn:aws:iam::224761220970:policy/budget_sns_gha_policy",
-          "arn:aws:iam::224761220970:role/lambda_budget_gha_role",
-          "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert",
-          "arn:aws:logs:us-east-1:224761220970:log-group:/aws/lambda/budget_update_gha_alert",
-          "arn:aws:budgets::224761220970:budget/*",
-          "arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole",
-          "arn:aws:ssm:us-east-1:224761220970:document/budget_update_gha_alert",
-          "arn:aws:logs:us-east-1:224761220970:log-group::log-stream:*",
-          "arn:aws:sns:us-east-1:224761220970:budget-updates-topic",
-          "arn:aws:organizations::224761220970:root/o-wdq8jdx6ev/r-rs6a",
-          "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
+          "*"
+          # "arn:aws:iam::224761220970:policy/budget_sns_gha_policy",
+          # "arn:aws:iam::224761220970:role/lambda_budget_gha_role",
+          # "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert",
+          # "arn:aws:logs:us-east-1:224761220970:log-group:/aws/lambda/budget_update_gha_alert",
+          # "arn:aws:budgets::224761220970:budget/*",
+          # "arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole",
+          # "arn:aws:ssm:us-east-1:224761220970:document/budget_update_gha_alert",
+          # "arn:aws:logs:us-east-1:224761220970:log-group::log-stream:*",
+          # "arn:aws:sns:us-east-1:224761220970:budget-updates-topic",
+          # "arn:aws:organizations::224761220970:root/o-wdq8jdx6ev/r-rs6a",
+          # "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
         ]
       },
       {
@@ -505,11 +507,11 @@ resource "aws_iam_role_policy" "ssm_automation_policy" {
 
         ]
         Resource = [
-          "*"
-          # "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
-          # "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
-          # "arn:aws:sns:us-east-1:224761220970:budget-updates-topic",
-          # "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
+
+          "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
+          "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
+          "arn:aws:sns:us-east-1:224761220970:budget-updates-topic",
+          "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
         ]
       },
       {
