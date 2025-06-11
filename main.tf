@@ -169,7 +169,9 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
       {
         "Effect" : "Allow",
         "Action" : [
-          "organizations:DescribeOrganization"
+          "organizations:DescribeOrganization",
+          "organizations:ListAccounts",
+          "organizations:ListAccountsForParent"
         ],
         "Resource" : "*"
       }
