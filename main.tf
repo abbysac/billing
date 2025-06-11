@@ -139,7 +139,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
         "Action" : [
           "iam:GetPolicy",
           "iam:GetPolicyVersion",
-          "iam:GetRole"
+          "iam:GetRole",
+          "iam:ListRolePolicies"
         ],
         "Resource" : "arn:aws:iam::224761220970:role/lambda_budget_gha_role"
       }
