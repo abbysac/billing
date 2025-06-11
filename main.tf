@@ -148,7 +148,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
         ],
         "Resource" : [
           "arn:aws:iam::224761220970:policy/budget_sns_gha_policy",
-          "arn:aws:iam::224761220970:role/lambda_budget_gha_role"
+          "arn:aws:iam::224761220970:role/lambda_budget_gha_role",
+          "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
         ]
       }
 
