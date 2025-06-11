@@ -158,7 +158,7 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "arn:aws:logs:us-east-1:224761220970:log-group:/aws/lambda/budget_update_gha_alert",
           "arn:aws:budgets::224761220970:budget/*",
           "arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole",
-          "arn:aws:ssm:us-east-1:224761220970:document/budget_update_gha_alert"
+          "arn:aws:ssm:us-east-1:224761220970:document/budget_update_gha_alert",
           "arn:aws:logs:us-east-1:224761220970:log-group::log-stream:*"
         ]
       }
