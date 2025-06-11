@@ -294,7 +294,8 @@ resource "aws_iam_policy" "policy" {
           "organizations:ListAccounts",
           "organizations:DescribeOrganization",
           "ses:SendEmail",
-          "Organizations: ListRoots"
+          "Organizations:ListRoots",
+          "iam:PutRolePolicy"
 
 
         ],
