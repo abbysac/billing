@@ -324,6 +324,14 @@ resource "aws_iam_policy" "policy" {
 
 
         ]
+      },
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "organizations:ListAccounts",
+          "ses:SendEmail"
+        ],
+        "Resource" : "*"
       }
     ]
   })
