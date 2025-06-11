@@ -505,10 +505,11 @@ resource "aws_iam_role_policy" "ssm_automation_policy" {
 
         ]
         Resource = [
-          "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
-          "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
-          "arn:aws:sns:us-east-1:224761220970:budget-updates-topic",
-          "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
+          "*"
+          # "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
+          # "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
+          # "arn:aws:sns:us-east-1:224761220970:budget-updates-topic",
+          # "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
         ]
       },
       {
