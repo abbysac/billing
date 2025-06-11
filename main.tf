@@ -171,6 +171,7 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "arn:aws:logs:us-east-1:224761220970:log-group::log-stream:*",
           "arn:aws:sns:us-east-1:224761220970:budget-updates-topic",
           "arn:aws:organizations::224761220970:root/o-wdq8jdx6ev/r-rs6a",
+          "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
         ]
       },
       {
