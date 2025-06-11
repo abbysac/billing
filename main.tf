@@ -279,9 +279,6 @@ resource "aws_iam_policy" "policy" {
         ],
         "Resource" : [
           "*"
-          # "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
-          # "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
-          # "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
 
         ]
       },
@@ -783,3 +780,6 @@ EOF
 # "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget"
 # ]
 
+# "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
+# "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
+# "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
