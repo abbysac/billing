@@ -163,7 +163,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "ssm:UpdateDocument",
           "iam:PutRolePolicy",
           "budgets:ModifyBudget",
-          "ssm:UpdateDocumentDefaultVersion"
+          "ssm:UpdateDocumentDefaultVersion",
+          "ssm:CreateDocument"
 
         ],
         "Resource" : [
@@ -654,7 +655,7 @@ resource "aws_ssm_document" "invoke_central_lambda" {
       }
       BudgetThresholdPercent = {
         type    = "String"
-        default = "70.0" # Low threshold for testing
+        default = "50.0" # Low threshold for testing
       }
     }
 
