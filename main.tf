@@ -342,7 +342,7 @@ resource "aws_iam_policy" "policy" {
         "Effect" : "Allow",
         "Action" : "ssm:StartAutomationExecution",
         "Resource" : [
-          "arn:aws:ssm:us-east-1:224761220970:automation-definition/budget_update_gha_alert:*",
+          # "arn:aws:ssm:us-east-1:224761220970:automation-definition/budget_update_gha_alert:*",
           "arn:aws:ssm:us-east-1:224761220970:automation-definition/budget_update_gha_alert:$DEFAULT"
         ]
       }
