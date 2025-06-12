@@ -1,6 +1,7 @@
 import json
 import boto3
 import decimal
+import logging
 
 ses = boto3.client('ses')
 ssm = boto3.client('ssm')
@@ -16,6 +17,9 @@ class DecimalEncoder(json.JSONEncoder):
 
 def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
+
+    message =json.loads(event['Records'][0]['Sns']['Message'])
+    logging.info(f"Processed SNS Message: {message}")
 
     try:
         # Extract SNS payload
