@@ -46,16 +46,16 @@ def lambda_handler(event, context):
 
         print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
 
-        # 🔁 Trigger SSM Automation if over threshold
-        if percent_used >= threshold:
-            try:
-                response = ssm.start_automation_execution(
-                    DocumentName='budget_update_gha_alert',
-                    Parameters={'TargetAccountId': [account_id]}
-                )
-                print("SSM Automation triggered:", response)
-            except Exception as e:
-                print(f"Failed to start SSM automation: {e}")
+        # # 🔁 Trigger SSM Automation if over threshold
+        # if percent_used >= threshold:
+        #     try:
+        #         response = ssm.start_automation_execution(
+        #             DocumentName='budget_update_gha_alert',
+        #             Parameters={'TargetAccountId': [account_id]}
+        #         )
+        #         print("SSM Automation triggered:", response)
+        #     except Exception as e:
+        #         print(f"Failed to start SSM automation: {e}")
 
         subject = f"AWS Budget Alert: {budget_name}"
         email_body = f"""
