@@ -124,8 +124,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "lambda:GetFunction",
           "lambda:ListVersionsByFunction",
           "iam:GetPolicy",
-          "iam:PutRolePolicy",
-          "budgets:ModifyBudget"
+          "iam:PutRolePolicy"
+
 
 
         ]
