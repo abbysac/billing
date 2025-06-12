@@ -614,9 +614,9 @@ resource "aws_ssm_document" "invoke_central_lambda" {
   name          = "budget_update_gha_alert"
   document_type = "Automation"
   content = jsonencode({
-    schemaVersion   = "0.3"
-    description     = "Assume role in target account and invoke central Lambda"
-    DocumentVersion = "74",
+    schemaVersion = "0.3"
+    description   = "Assume role in target account and invoke central Lambda"
+
     parameters = {
       TargetAccountId = {
         type    = "String"
