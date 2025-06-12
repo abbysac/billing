@@ -197,7 +197,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "iam:GetRolePolicy",
           "iam:ListRolePolicies",
           "iam:GetRole",
-          "ssm:CreateDocument"
+          "ssm:CreateDocument",
+          "lambda:UpdateFunctionConfiguration"
 
 
         ],
