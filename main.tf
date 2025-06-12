@@ -337,7 +337,7 @@ resource "aws_iam_policy" "policy" {
           "ses:SendEmail"
         ],
         "Resource" : "*"
-      },
+      }
       # {
       #   "Effect" : "Allow",
       #   "Action" : "ssm:StartAutomationExecution",
