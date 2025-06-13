@@ -737,7 +737,7 @@ def handler(event, context):
                 actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
                 percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0
 
-                print(f"Budget: {budget_name}, Limit: ${budget_limit:.2f}, Spend: ${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
+                print(f"Budget: {budget_name}, Limit: $${budget_limit:.2f}, Spend: $${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
 
                 threshold_percent = 80.0
                 alert_trigger = "ACTUAL"
@@ -764,7 +764,7 @@ def handler(event, context):
                                 "budget_limit": budget_limit,
                                 "percentage_used": percentage_used,
                                 "alert_trigger": alert_trigger,
-                                "kms_environment": "stage",
+                                "environment": "stage",
                                 "message": message,
                                 "threshold_percent": threshold_percent
                             })
@@ -797,21 +797,21 @@ def handler(event, context):
     print(f"Final results: {json.dumps(results, indent=2)}")
     return {"results": results}
 EOF
-InputPayload = {
-AccountId   = "{{ TargetAccountId }}"
-BudgetName  = "{{ BudgetName }}"
-SnsTopicArn = "{{ SnsTopicArn }}"
-Message     = "{{ Message }}"
-Credentials = {
-  AccessKeyId     = "{{ assumeRole.AccessKeyId }}"
-  SecretAccessKey = "{{ assumeRole.SecretAccessKey }}"
-  SessionToken    = "{{ assumeRole.SessionToken }}"
-}
-}
-}
-}
-]
-})
+          InputPayload = {
+            AccountId   = "{{ TargetAccountId }}"
+            BudgetName  = "{{ BudgetName }}"
+            SnsTopicArn = "{{ SnsTopicArn }}"
+            Message     = "{{ Message }}"
+            Credentials = {
+              AccessKeyId     = "{{ assumeRole.AccessKeyId }}"
+              SecretAccessKey = "{{ assumeRole.SecretAccessKey }}"
+              SessionToken    = "{{ assumeRole.SessionToken }}"
+            }
+          }
+        }
+      }
+    ]
+  })
 }
 # "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
 # "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget"
