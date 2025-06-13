@@ -696,30 +696,22 @@ import json
 
 def handler(event, context):
     results = []
-
     account_id = event.get("AccountId")
     budget_names = event.get("BudgetName")
-    threshold_percent = float(event.get("BudgetThresholdPercent", 80.0))
     sns_topic_arn = event.get("SnsTopicArn", "")
+    message = event.get("Message", "Budget threshold exceeded")
 
     print(f"Input event: {json.dumps(event, indent=2)}")
-    print(f"Processing account: {account_id}, budgets: {budget_names}, threshold: {threshold_percent}%, sns_topic: {sns_topic_arn}")
+    print(f"Processing account: {account_id}, budgets: {budget_names}, sns_topic: {sns_topic_arn}, message: {message}")
 
-    # Ensure budget_names is a list
     if isinstance(budget_names, str):
         budget_names = [budget_names]
     elif not isinstance(budget_names, list) or not budget_names:
-        results.append({
-            "account_id": account_id,
-            "error": "BudgetName must be a non-empty string or list"
-        })
+        results.append({"account_id": account_id, "error": "BudgetName must be a non-empty string or list"})
         return {"results": results}
 
     if not all([account_id, budget_names, sns_topic_arn]):
-        results.append({
-            "account_id": account_id,
-            "error": "Missing required inputs: AccountId, BudgetName, or SnsTopicArn"
-        })
+        results.append({"account_id": account_id, "error": "Missing required inputs: AccountId, BudgetName, or SnsTopicArn"})
         return {"results": results}
 
     try:
@@ -728,32 +720,34 @@ def handler(event, context):
             aws_secret_access_key=event["Credentials"]["SecretAccessKey"],
             aws_session_token=event["Credentials"]["SessionToken"]
         )
-
         budgets = session.client("budgets")
         sns = session.client("sns")
+        csv_data = ${jsonencode(local.csvfld)}
 
         for budget_name in budget_names:
             if not isinstance(budget_name, str):
-                results.append({
-                    "account_id": account_id,
-                    "budget_name": budget_name,
-                    "error": f"Invalid BudgetName: {budget_name} is not a string"
-                })
+                results.append({"account_id": account_id, "budget_name": budget_name, "error": f"Invalid BudgetName: {budget_name} is not a string"})
                 continue
 
             try:
                 print(f"Describing budget: {budget_name}")
-                response = budgets.describe_budget(
-                    AccountId=account_id,
-                    BudgetName=budget_name
-                )
-
+                response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
                 budget = response["Budget"]
                 budget_limit = float(budget["BudgetLimit"]["Amount"])
                 actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
                 percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0
 
-                print(f"Budget: {budget_name}, Limit: {budget_limit}, Spend: {actual_spend}, Percent Used: {percentage_used:.2f}%")
+                print(f"Budget: {budget_name}, Limit: ${budget_limit:.2f}, Spend: ${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
+
+                threshold_percent = 80.0
+                alert_trigger = "ACTUAL"
+                for row in csv_data:
+                    if row["BudgetName"] == budget_name and row["AccountId"] == account_id:
+                        threshold_percent = float(row["Alert1Threshold"])
+                        alert_trigger = row["Alert1Trigger"]
+                        break
+
+                print(f"Using threshold: {threshold_percent}%, trigger: {alert_trigger}, comparison: {percentage_used:.2f}% >= {threshold_percent}%")
 
                 alert_triggered = percentage_used >= threshold_percent
                 print(f"Alert triggered for {budget_name}: {alert_triggered}")
@@ -766,21 +760,19 @@ def handler(event, context):
                             Message=json.dumps({
                                 "account_id": account_id,
                                 "budgetName": budget_name,
-                                "amount": actual_spend,
-                                "budgetLimit": budget_limit,
-                                "threshold": threshold_percent,
-                                "alertType": "ACTUAL",
-                                "environment": "stage"
+                                "actual_spend": actual_spend,
+                                "budget_limit": budget_limit,
+                                "percentage_used": percentage_used,
+                                "alert_trigger": alert_trigger,
+                                "kms_environment": "stage",
+                                "message": message,
+                                "threshold_percent": threshold_percent
                             })
                         )
                         print(f"SNS published successfully for {budget_name}. MessageId: {sns_response['MessageId']}")
                     except Exception as sns_error:
                         print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
-                        results.append({
-                            "account_id": account_id,
-                            "budget_name": budget_name,
-                            "error": f"SNS publish failed: {str(sns_error)}"
-                        })
+                        results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
                         continue
 
                 results.append({
@@ -789,16 +781,14 @@ def handler(event, context):
                     "budget_limit": budget_limit,
                     "actual_spend": actual_spend,
                     "percent_used": percentage_used,
-                    "alert_triggered": alert_triggered
+                    "alert_triggered": alert_triggered,
+                    "threshold_percent": threshold_percent,
+                    "alert_trigger": alert_trigger
                 })
 
             except Exception as e:
                 print(f"Error processing budget {budget_name}: {str(e)}")
-                results.append({
-                    "account_id": account_id,
-                    "budget_name": budget_name,
-                    "error": str(e)
-                })
+                results.append({"account_id": account_id, "budget_name": budget_name, "error": str(e)})
 
     except Exception as e:
         print(f"General error: {str(e)}")
@@ -807,23 +797,22 @@ def handler(event, context):
     print(f"Final results: {json.dumps(results, indent=2)}")
     return {"results": results}
 EOF
-          InputPayload = {
-            AccountId   = "{{ TargetAccountId }}"
-            BudgetName  = "{{ BudgetName }}"
-            SnsTopicArn = "{{ SnsTopicArn }}"
-            Credentials = {
-              AccessKeyId     = "{{ assumeRole.AccessKeyId }}"
-              SecretAccessKey = "{{ assumeRole.SecretAccessKey }}"
-              SessionToken    = "{{ assumeRole.SessionToken }}"
-            }
-          }
-        }
-      }
-    ]
-  })
+InputPayload = {
+AccountId   = "{{ TargetAccountId }}"
+BudgetName  = "{{ BudgetName }}"
+SnsTopicArn = "{{ SnsTopicArn }}"
+Message     = "{{ Message }}"
+Credentials = {
+  AccessKeyId     = "{{ assumeRole.AccessKeyId }}"
+  SecretAccessKey = "{{ assumeRole.SecretAccessKey }}"
+  SessionToken    = "{{ assumeRole.SessionToken }}"
 }
-
-
+}
+}
+}
+]
+})
+}
 # "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
 # "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget"
 # ]
