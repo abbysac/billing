@@ -693,6 +693,7 @@ resource "aws_ssm_document" "invoke_central_lambda" {
 
 import boto3
 import json
+import datetime
 
 def handler(event, context):
     results = []
@@ -722,6 +723,7 @@ def handler(event, context):
         )
         budgets = session.client("budgets")
         sns = session.client("sns")
+        ssm = session.client("ssm")
         csv_data = ${jsonencode(local.csvfld)}
 
         for budget_name in budget_names:
@@ -737,7 +739,7 @@ def handler(event, context):
                 actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
                 percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0
 
-                print(f"Budget: {budget_name}, Limit: $${budget_limit:.2f}, Spend: $${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
+                print(f"Budget: {budget_name}, Limit: ${budget_limit:.2f}, Spend: ${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
 
                 threshold_percent = 80.0
                 alert_trigger = "ACTUAL"
@@ -753,27 +755,41 @@ def handler(event, context):
                 print(f"Alert triggered for {budget_name}: {alert_triggered}")
 
                 if alert_triggered:
-                    print(f"Threshold exceeded for {budget_name} ({percentage_used:.2f}%) - publishing to SNS")
+                    param_name = f"/budget_alerts/{account_id}/{budget_name}"
                     try:
-                        sns_response = sns.publish(
-                            TopicArn=sns_topic_arn,
-                            Message=json.dumps({
-                                "account_id": account_id,
-                                "budgetName": budget_name,
-                                "actual_spend": actual_spend,
-                                "budget_limit": budget_limit,
-                                "percentage_used": percentage_used,
-                                "alert_trigger": alert_trigger,
-                                "environment": "stage",
-                                "message": message,
-                                "threshold_percent": threshold_percent
-                            })
-                        )
-                        print(f"SNS published successfully for {budget_name}. MessageId: {sns_response['MessageId']}")
-                    except Exception as sns_error:
-                        print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
-                        results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
+                        ssm.get_parameter(Name=param_name)
+                        print(f"Alert already sent for {budget_name}, skipping")
                         continue
+                    except ssm.exceptions.ParameterNotFound:
+                        print(f"Threshold exceeded for {budget_name} ({percentage_used:.2f}%) - publishing to SNS")
+                        try:
+                            sns_response = sns.publish(
+                                TopicArn=sns_topic_arn,
+                                Message=json.dumps({
+                                    "account_id": account_id,
+                                    "budgetName": budget_name,
+                                    "actual_spend": actual_spend,
+                                    "budget_limit": budget_limit,
+                                    "percentage_used": percentage_used,
+                                    "alert_trigger": alert_trigger,
+                                    "environment": "stage",
+                                    "message": message,
+                                    "threshold_percent": threshold_percent
+                                })
+                            )
+                            print(f"SNS published successfully for {budget_name}. MessageId: {sns_response['MessageId']}")
+                            ssm.put_parameter(
+                                Name=param_name,
+                                Value=json.dumps({
+                                    "message_id": sns_response["MessageId"],
+                                    "timestamp": str(datetime.datetime.utcnow())
+                                }),
+                                Type="String"
+                            )
+                        except Exception as sns_error:
+                            print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
+                            results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
+                            continue
 
                 results.append({
                     "account_id": account_id,
@@ -797,26 +813,39 @@ def handler(event, context):
     print(f"Final results: {json.dumps(results, indent=2)}")
     return {"results": results}
 EOF
-          InputPayload = {
-            AccountId   = "{{ TargetAccountId }}"
-            BudgetName  = "{{ BudgetName }}"
-            SnsTopicArn = "{{ SnsTopicArn }}"
-            Message     = "{{ Message }}"
-            Credentials = {
-              AccessKeyId     = "{{ assumeRole.AccessKeyId }}"
-              SecretAccessKey = "{{ assumeRole.SecretAccessKey }}"
-              SessionToken    = "{{ assumeRole.SessionToken }}"
-            }
-          }
-        }
-      }
-    ]
-  })
+InputPayload = {
+AccountId   = "{{ TargetAccountId }}"
+BudgetName  = "{{ BudgetName }}"
+SnsTopicArn = "{{ SnsTopicArn }}"
+Message     = "{{ Message }}"
+Credentials = {
+  AccessKeyId     = "{{ assumeRole.AccessKeyId }}"
+  SecretAccessKey = "{{ assumeRole.SecretAccessKey }}"
+  SessionToken    = "{{ assumeRole.SessionToken }}"
 }
-# "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
-# "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget"
-# ]
+}
+}
+}
+]
+})
+}
 
-# "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
-# "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
-# "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert"
+# # Trigger SSM on CSV change
+# resource "null_resource" "trigger_ssm_on_csv_change" {
+#   triggers = {
+#     csv_hash = local.csv_hash
+#   }
+
+#   provisioner "local-exec" {
+#     command = <<-EOT
+#       aws ssm start-automation-execution \
+#         --document-name "budget_update_gha_alert" \
+#         --parameters '{"TargetAccountId":"224761220970","BudgetName":${jsonencode([for item in local.csvfld : item.BudgetName])},"SnsTopicArn":"arn:aws:sns:us-east-1:224761220970:budget-updates-topic","Message":"Budget threshold exceeded alert"}' \
+#         --region us-east-1
+#     EOT
+#   }
+
+#   depends_on = [aws_ssm_document.invoke_central_lambda]
+# }
+
+# AWS Budgets configuration
