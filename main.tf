@@ -12,6 +12,7 @@ locals {
       linked_accounts = contains(keys(row), "linked_accounts") ? jsondecode(row.linked_accounts) : []
     }
   }
+  csv_hash = filemd5("./csvdata.csv")
 }
 
 
