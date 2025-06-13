@@ -18,7 +18,6 @@ def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
 
     try:
-        # Extract and parse SNS message
         sns_record = event['Records'][0]['Sns']
         sns_message_str = sns_record['Message']
         message = json.loads(sns_message_str)
@@ -28,7 +27,6 @@ def lambda_handler(event, context):
         return {"statusCode": 400, "body": "Invalid SNS message format"}
 
     try:
-        # Extract values (aligned with SSM SNS message)
         account_id = message.get("account_id")
         budget_name = message.get("budgetName")
         actual_spend = float(message.get("actual_spend", 0.0))
@@ -36,9 +34,8 @@ def lambda_handler(event, context):
         percentage_used = float(message.get("percentage_used", 0.0))
         alert_trigger = message.get("alert_trigger", "ACTUAL")
         environment = message.get("environment", "stage")
-        threshold = float(message.get("threshold_percent", 80.0))  # Use threshold from SSM or default
+        threshold = float(message.get("threshold_percent", 80.0))
 
-        # Validate required fields
         if not all([account_id, budget_name, actual_spend is not None, budget_limit is not None, percentage_used is not None]):
             error_msg = f"Missing required fields: {message}"
             print(error_msg)
@@ -46,7 +43,6 @@ def lambda_handler(event, context):
 
         print(f"[INFO] {account_id} - {budget_name} used {percentage_used:.2f}% of budget, threshold: {threshold}%")
 
-        # Check threshold
         if percentage_used < threshold:
             print(f"[INFO] {budget_name} usage ({percentage_used:.2f}%) below threshold ({threshold}%) - no email sent")
             return {"statusCode": 200, "body": "Threshold not exceeded"}
