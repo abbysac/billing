@@ -2,6 +2,8 @@ import json
 import boto3
 import decimal
 import logging
+import time
+from botocore.exceptions import ClientError
 
 ses = boto3.client('ses', region_name='us-east-1')
 
@@ -68,8 +70,9 @@ Alert Trigger: {alert_trigger}
 Full Message:
 {json.dumps(message, indent=2, cls=DecimalEncoder)}
 """
-
-        try:
+def send_email_with_retry(source, destination, subject, body, retries=4, base_delay=2):
+    for attempt in range(retries):
+        # try:
             response = ses.send_email(
                 Source=SENDER_EMAIL,
                 Destination={'ToAddresses': [RECIPIENT_EMAIL]},
@@ -84,11 +87,20 @@ Full Message:
                 }
             )
             print(f"Email sent! Message ID: {response['MessageId']}")
-            return {"statusCode": 200, "body": "Email sent successfully"}
-        except Exception as e:
-            print(f"Failed to send email: {str(e)}")
-            return {"statusCode": 500, "body": f"Failed to send email: {str(e)}"}
+    #         return {"statusCode": 200, "body": "Email sent successfully"}
+    #     except Exception as e:
+    #         print(f"Failed to send email: {str(e)}")
+    #         return {"statusCode": 500, "body": f"Failed to send email: {str(e)}"}
 
-    except Exception as e:
-        print(f"Error in main handler logic: {e}")
-        return {"statusCode": 400, "body": "Unexpected processing error"}
+    # except Exception as e:
+    #     print(f"Error in main handler logic: {e}")
+    #     return {"statusCode": 400, "body": "Unexpected processing error"}
+            return response
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'Throttling':
+                wait_time = base_delay * (2 ** attempt)
+                print(f"[RETRY] SES Throttled. Attempt {attempt + 1}/{retries}. Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+            else:
+                raise e
+    raise Exception("Exceeded max retries for SES send_email due to throttling.")
