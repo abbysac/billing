@@ -166,7 +166,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "budgets:ModifyBudget",
           "ssm:UpdateDocumentDefaultVersion",
           "ssm:CreateDocument",
-          "lambda:UpdateFunctionConfiguration"
+          "lambda:UpdateFunctionConfiguration",
+          "ssm:GetParameter"
 
         ],
         "Resource" : [
@@ -199,8 +200,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "iam:ListRolePolicies",
           "iam:GetRole",
           "ssm:CreateDocument",
-          "lambda:UpdateFunctionConfiguration",
-          "ssm:GetParameter"
+          "lambda:UpdateFunctionConfiguration"
+
 
 
 
