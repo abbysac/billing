@@ -124,5 +124,4 @@ Full Message:
 
     # except Exception as e:
     #     print(f"Error in main handler logic: {e}")
-    #     return {"statusCode": 400, "body": "Unexpected processing error"}
-            
+    #     return {"statusCode": 400, "body": "Unexpected processing error"}           
