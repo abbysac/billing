@@ -545,7 +545,8 @@ resource "aws_iam_role_policy" "ssm_automation_policy" {
         Effect = "Allow"
         Action = [
           "budgets:DescribeBudget",
-          "budgets:ViewBudget"
+          "budgets:ViewBudget",
+          "ssm:GetParameter"
 
         ],
         Resource = "*"
