@@ -15,6 +15,37 @@ class DecimalEncoder(json.JSONEncoder):
         if isinstance(obj, decimal.Decimal):
             return float(obj)
         return super().default(obj)
+    
+#  Define this outside any try block
+def send_email_with_retry(source, destination, subject, body, retries=4, base_delay=2):
+    for attempt in range(retries):
+        try:
+            response = ses.send_email(
+                Source=source,
+                Destination={'ToAddresses': [destination]},
+                Message={
+                    'Subject': {'Data': subject},
+                    'Body': {
+                        'Text': {
+                            'Data': body,
+                            'Charset': 'UTF-8'
+                        }
+                    }
+                }
+            )
+            print(f"Email sent! Message ID: {response['MessageId']}")
+            return response
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'Throttling':
+                wait_time = base_delay * (2 ** attempt)
+                print(f"[RETRY] SES Throttled. Attempt {attempt + 1}/{retries}. Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+            else:
+                raise e
+    raise Exception("Exceeded max retries for SES send_email due to throttling.")
+
+    
+
 
 def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
@@ -70,23 +101,22 @@ Alert Trigger: {alert_trigger}
 Full Message:
 {json.dumps(message, indent=2, cls=DecimalEncoder)}
 """
-def send_email_with_retry(source, destination, subject, body, retries=4, base_delay=2):
-    for attempt in range(retries):
-        try:
-            response = ses.send_email(
-                Source=SENDER_EMAIL,
-                Destination={'ToAddresses': [RECIPIENT_EMAIL]},
-                Message={
-                    'Subject': {'Data': subject},
-                    'Body': {
-                        'Text': {
-                            'Data': email_body,
-                            'Charset': 'UTF-8'
-                        }
-                    }
-                }
-            )
-            print(f"Email sent! Message ID: {response['MessageId']}")
+
+    #     try:
+    #         response = ses.send_email(
+    #             Source=SENDER_EMAIL,
+    #             Destination={'ToAddresses': [RECIPIENT_EMAIL]},
+    #             Message={
+    #                 'Subject': {'Data': subject},
+    #                 'Body': {
+    #                     'Text': {
+    #                         'Data': email_body,
+    #                         'Charset': 'UTF-8'
+    #                     }
+    #                 }
+    #             }
+    #         )
+    #         print(f"Email sent! Message ID: {response['MessageId']}")
     #         return {"statusCode": 200, "body": "Email sent successfully"}
     #     except Exception as e:
     #         print(f"Failed to send email: {str(e)}")
@@ -95,12 +125,4 @@ def send_email_with_retry(source, destination, subject, body, retries=4, base_de
     # except Exception as e:
     #     print(f"Error in main handler logic: {e}")
     #     return {"statusCode": 400, "body": "Unexpected processing error"}
-            return response
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'Throttling':
-                wait_time = base_delay * (2 ** attempt)
-                print(f"[RETRY] SES Throttled. Attempt {attempt + 1}/{retries}. Retrying in {wait_time}s...")
-                time.sleep(wait_time)
-            else:
-                raise e
-    raise Exception("Exceeded max retries for SES send_email due to throttling.")
+            
