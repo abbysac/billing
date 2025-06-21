@@ -72,7 +72,7 @@ Full Message:
 """
 def send_email_with_retry(source, destination, subject, body, retries=4, base_delay=2):
     for attempt in range(retries):
-        # try:
+        try:
             response = ses.send_email(
                 Source=SENDER_EMAIL,
                 Destination={'ToAddresses': [RECIPIENT_EMAIL]},
