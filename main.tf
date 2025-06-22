@@ -765,7 +765,7 @@ def handler(event, context):
                 print(f"Alert triggered for {budget_name}: {alert_triggered}")
 
                 if alert_triggered:
-                    # encoded_budget_name = urllib.parse.quote(budget_name, safe='')
+                    Message=f"Budget alert for {budget_name} in account {account_id}"
                     # safe_budget_name = re.sub(r'[^A-Za-z0-9._/-]', '_', budget_name)
                     # param_name = f"/budget_alerts/{account_id}/{budget_name}"
                     # param_name = f"/budget_alerts/{account_id}/{encoded_budget_name}"
@@ -779,7 +779,6 @@ def handler(event, context):
                     try:
                             sns_response = sns.publish(
                                 TopicArn=sns_topic_arn,
-                                Message=f"Budget alert for {budget_name} in account {account_id}"
                                 Message=json.dumps({
                                     "account_id": account_id,
                                     "budgetName": budget_name,
