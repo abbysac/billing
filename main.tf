@@ -765,7 +765,7 @@ def handler(event, context):
                 print(f"Alert triggered for {budget_name}: {alert_triggered}")
 
                 if alert_triggered:
-                    Message=f"Budget alert for {budget_name} in account {account_id}"
+                    # Message=f"Budget alert for {budget_name} in account {account_id}"
                     # safe_budget_name = re.sub(r'[^A-Za-z0-9._/-]', '_', budget_name)
                     # param_name = f"/budget_alerts/{account_id}/{budget_name}"
                     # param_name = f"/budget_alerts/{account_id}/{encoded_budget_name}"
@@ -792,14 +792,14 @@ def handler(event, context):
                                 })
                             )
                             print(f"SNS published successfully for {budget_name}. MessageId: {sns_response['MessageId']}")
-                            ssm.put_parameter(
-                                Name=param_name,
-                                Value=json.dumps({
-                                    "message_id": sns_response["MessageId"],
-                                    "timestamp": str(datetime.datetime.utcnow())
-                                }),
-                                Type="String"
-                            )
+                            # ssm.put_parameter(
+                            #     Name=param_name,
+                            #     Value=json.dumps({
+                            #         "message_id": sns_response["MessageId"],
+                            #         "timestamp": str(datetime.datetime.utcnow())
+                            #     }),
+                            #     Type="String"
+                            # )
                     except Exception as sns_error:
                         print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
                         results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
