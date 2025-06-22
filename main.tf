@@ -668,10 +668,10 @@ resource "aws_ssm_document" "invoke_central_lambda" {
         type    = "String"
         default = "50.0" # Low threshold for testing
       }
-      AccountId = {
-        type    = "String"
-        default = "752338767189"
-      }
+      # AccountId = {
+      #   type    = "String"
+      #   default = "752338767189"
+      # }
     }
 
 
