@@ -779,6 +779,7 @@ def handler(event, context):
                     try:
                             sns_response = sns.publish(
                                 TopicArn=sns_topic_arn,
+                                Message=f"Budget alert for {budget_name} in account {account_id}"
                                 Message=json.dumps({
                                     "account_id": account_id,
                                     "budgetName": budget_name,
