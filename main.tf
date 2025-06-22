@@ -767,11 +767,12 @@ def handler(event, context):
                 if alert_triggered:
                     # encoded_budget_name = urllib.parse.quote(budget_name, safe='')
                     # safe_budget_name = re.sub(r'[^A-Za-z0-9._/-]', '_', budget_name)
-                    param_name = f"/budget_alerts/{account_id}/{budget_name}"
+                    # param_name = f"/budget_alerts/{account_id}/{budget_name}"
                     # param_name = f"/budget_alerts/{account_id}/{encoded_budget_name}"
+                    print(f"Threshold exceeded for {budget_names} ({percentage_used:.2f}%) - publishing to SNS")
                     try:
                         ssm.get_parameter(Name=param_name)
-                        print(f"Alert already sent for {budget_name}, skipping")
+                        print(f"Alert already sent for {budget_names}, skipping")
                         continue
                     except ssm.exceptions.ParameterNotFound:
                         print(f"Threshold exceeded for {budget_name} ({percentage_used:.2f}%) - publishing to SNS")
