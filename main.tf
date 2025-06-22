@@ -737,7 +737,7 @@ def handler(event, context):
 
         for budget_name in budget_names:
             if not isinstance(budget_name, str):
-                results.append({"account_id": account_id, "budget_name": budget_name, "error": f"Invalid BudgetName: {budget_name} is not a string"})
+                results.append({"account_id": account_id, "budget_names": BudgetName, "error": f"Invalid BudgetName: {budget_name} is not a string"})
                 continue
 
             try:
