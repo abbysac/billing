@@ -703,6 +703,7 @@ resource "aws_ssm_document" "invoke_central_lambda" {
 import boto3
 import json
 import datetime
+import urllib.parse
 
 def handler(event, context):
     results = []
