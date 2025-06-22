@@ -774,8 +774,8 @@ def handler(event, context):
                     #     ssm.get_parameter(Name=param_name)
                     #     print(f"Alert already sent for {budget_names}, skipping")
                     #     continue
-                    except ssm.exceptions.ParameterNotFound:
-                        print(f"Threshold exceeded for {budget_name} ({percentage_used:.2f}%) - publishing to SNS")
+                    # except ssm.exceptions.ParameterNotFound:
+                    #     print(f"Threshold exceeded for {budget_name} ({percentage_used:.2f}%) - publishing to SNS")
                         try:
                             sns_response = sns.publish(
                                 TopicArn=sns_topic_arn,
