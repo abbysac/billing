@@ -854,7 +854,7 @@ resource "null_resource" "trigger_ssm_on_csv_change" {
     command = <<-EOT
       aws ssm start-automation-execution \
         --document-name "budget_update_gha_alert" \
-        --parameters '{"TargetAccountId":"224761220970","BudgetName":${jsonencode([for item in local.csvfld : item.BudgetName])},"SnsTopicArn":"arn:aws:sns:us-east-1:224761220970:budget-updates-topic","Message":"Budget threshold exceeded alert"}' \
+        --parameters '{"TargetAccountId":["224761220970"],"BudgetName":${jsonencode([for item in local.csvfld : item.BudgetName])},"SnsTopicArn":"arn:aws:sns:us-east-1:224761220970:budget-updates-topic","Message":"Budget threshold exceeded alert"}' \
         --region us-east-1
     EOT
   }
