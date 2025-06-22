@@ -776,7 +776,7 @@ def handler(event, context):
                     #     continue
                     # except ssm.exceptions.ParameterNotFound:
                     #     print(f"Threshold exceeded for {budget_name} ({percentage_used:.2f}%) - publishing to SNS")
-                        try:
+                    try:
                             sns_response = sns.publish(
                                 TopicArn=sns_topic_arn,
                                 Message=json.dumps({
