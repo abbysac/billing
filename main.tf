@@ -767,7 +767,8 @@ def handler(event, context):
                 if alert_triggered:
                     encoded_budget_name = urllib.parse.quote(budget_name, safe='')
                     # safe_budget_name = re.sub(r'[^A-Za-z0-9._/-]', '_', budget_name)
-                    param_name = f"/budget_alerts/{account_id}/{budget_name}"
+                    # param_name = f"/budget_alerts/{account_id}/{budget_name}"
+                    param_name = f"/budget_alerts/{account_id}/{encoded_budget_name}"
                     try:
                         ssm.get_parameter(Name=param_name)
                         print(f"Alert already sent for {budget_name}, skipping")
