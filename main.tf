@@ -764,7 +764,8 @@ def handler(event, context):
                 print(f"Alert triggered for {budget_name}: {alert_triggered}")
 
                 if alert_triggered:
-                    safe_budget_name = re.sub(r'[^A-Za-z0-9._/-]', '_', budget_name)
+                    encoded_budget_name = urllib.parse.quote(budget_name, safe='')
+                    # safe_budget_name = re.sub(r'[^A-Za-z0-9._/-]', '_', budget_name)
                     param_name = f"/budget_alerts/{account_id}/{budget_name}"
                     try:
                         ssm.get_parameter(Name=param_name)
