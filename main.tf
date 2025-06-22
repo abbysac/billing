@@ -770,10 +770,10 @@ def handler(event, context):
                     # param_name = f"/budget_alerts/{account_id}/{budget_name}"
                     # param_name = f"/budget_alerts/{account_id}/{encoded_budget_name}"
                     print(f"Threshold exceeded for {budget_names} ({percentage_used:.2f}%) - publishing to SNS")
-                    try:
-                        ssm.get_parameter(Name=param_name)
-                        print(f"Alert already sent for {budget_names}, skipping")
-                        continue
+                    # try:
+                    #     ssm.get_parameter(Name=param_name)
+                    #     print(f"Alert already sent for {budget_names}, skipping")
+                    #     continue
                     except ssm.exceptions.ParameterNotFound:
                         print(f"Threshold exceeded for {budget_name} ({percentage_used:.2f}%) - publishing to SNS")
                         try:
