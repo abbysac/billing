@@ -167,7 +167,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "ssm:UpdateDocumentDefaultVersion",
           "ssm:CreateDocument",
           "lambda:UpdateFunctionConfiguration",
-          "ssm:GetParameter"
+          "ssm:GetParameter",
+          "ssm:StartAutomationExecution"
 
         ],
         "Resource" : [
