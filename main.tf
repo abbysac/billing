@@ -882,5 +882,5 @@ resource "null_resource" "trigger_ssm_on_csv_change" {
     EOT
   }
 
-  depends_on = [aws_ssm_document.invoke_central_lambda] #, aws_sns_topic.budget_updates]
+  depends_on = [aws_ssm_document.invoke_central_lambda, "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
 }
