@@ -98,9 +98,9 @@ Environment: {environment}
 Budget Limit: ${budget_limit:.2f}
 Alert Trigger: {alert_trigger}
 
-# Full Message:
-# {json.dumps(message, indent=2, cls=DecimalEncoder)}
-# """
+Full Message:
+{json.dumps(message, indent=2, cls=DecimalEncoder)}
+"""
 
         try:
             response = ses.send_email(
