@@ -675,14 +675,14 @@ resource "aws_ssm_document" "invoke_central_lambda" {
         type    = "String"
         default = "752338767189"
       }
-      alert_threshold = {
+      alertThreshold = {
         type    = "String"
         default = tostring(var.alert_threshold)
       }
-      # alert_trigger = {
-      #   type    = "String"
-      #   default = "ACTUAL"
-      # }
+      alertTrigger = {
+        type    = "String"
+        default = "ACTUAL"
+      }
     }
 
 
@@ -891,7 +891,7 @@ resource "null_resource" "trigger_ssm_on_threshold" {
 
   provisioner "local-exec" {
     when    = create
-    command = local.threshold_reached == "trigger" ? "aws ssm start-automation-execution --document-name \"budget_update_gha_alert\" --region ${var.aws_region} --parameters '{\"AlertThreshold\":\"100\",\"AlertTrigger\":\"ACTUAL\"}'" : "echo 'Threshold not reached, skipping SSM execution'"
+    command = local.threshold_reached == "trigger" ? "aws ssm start-automation-execution --document-name \"budget_update_gha_alert\" --region ${var.aws_region} --parameters '{\"AlertThreshold\":\"${var.alert_threshold}\",\"AlertTrigger\":\"ACTUAL\"}'" : "echo 'Threshold not reached, skipping SSM execution'"
   }
 
 
