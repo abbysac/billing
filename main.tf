@@ -874,11 +874,11 @@ variable "alert_threshold" {
   default     = 100
 }
 
-variable "current_value" {
-  description = "The current value to compare against the threshold"
-  type        = number
-  default     = 0
-}
+# variable "current_value" {
+#   description = "The current value to compare against the threshold"
+#   type        = number
+#   default     = 0
+# }
 
 locals {
   threshold_reached = var.current_value >= var.alert_threshold ? "trigger" : "no_trigger"
