@@ -891,7 +891,7 @@ resource "null_resource" "trigger_ssm_on_threshold" {
 
   provisioner "local-exec" {
     when    = create
-    command = local.threshold_reached == "trigger" ? "aws ssm start-automation-execution --document-name \"budget_update_gha_alert\" --region ${var.aws_region} --parameters '{\"ThresholdValue\":\"${var.alert_threshold}\",\"CurrentValue\":\"${var.current_value}\"}'" : "echo 'Threshold not reached, skipping SSM execution'"
+    command = local.threshold_reached == "trigger" ? "aws ssm start-automation-execution --document-name \"${var.ssm_document_name}\" --region ${var.aws_region} --parameters '{\"AlertThreshold\":\"${var.alert_threshold}\",\"AlertTrigger\":\"ACTUAL\"}'" : "echo 'Threshold not reached, skipping SSM execution'"
   }
 
 
