@@ -3,13 +3,13 @@ locals {
   accounts = {
     for row in local.csvfld :
     "${row.AccountId}_${row.BudgetName}" => {
-      account_id      = row.AccountId
-      budget_name     = row.BudgetName
-      budget_amount   = row.BudgetAmount
-      alert_threshold = row.Alert1Threshold
-      alert_trigger   = row.Alert1Trigger
-      sns_topic_arn   = row.SNSTopicArn
-      linked_accounts = contains(keys(row), "linked_accounts") ? jsondecode(row.linked_accounts) : []
+      account_id        = row.AccountId
+      budget_name       = row.BudgetName
+      budget_amount     = row.BudgetAmount
+      alert_threshold   = row.Alert1Threshold
+      alert_trigger     = row.Alert1Trigger
+      sns_topic_arn     = row.SNSTopicArn
+      linked_accounts   = contains(keys(row), "linked_accounts") ? jsondecode(row.linked_accounts) : []
       threshold_reached = var.current_value >= var.alert_threshold ? "trigger" : "no_trigger"
     }
   }
@@ -870,14 +870,14 @@ EOF
 
 variable "alert_threshold" {
   description = "The threshold value that triggers the SSM automation"
-  type = number
-  default = 100
+  type        = number
+  default     = 100
 }
 
 variable "current_value" {
   description = "The current value to compare against the threshold"
-  type = number
-  default = 0
+  type        = number
+  default     = 0
 }
 
 locals {
@@ -890,15 +890,10 @@ resource "null_resource" "trigger_ssm_on_threshold" {
   }
 
   provisioner "local-exec" {
-    when = create
-      command = local.threshold_reached == "trigger" ? <<-EOT
-        aws ssm start-automation-execution \
-          --document-name "budget_update_gha_alert" \
-          --region us-east-1 \
-          --parameters "{\"ThresholdValue\":\"${var.alert_threshold}\",\"CurrentValue\":\":${var.current_value}\"}"
-      EOT
-      : "echo 'Threshold not reached, skipping SSM execution'"
+    when    = create
+    command = local.threshold_reached == "trigger" ? "aws ssm start-automation-execution --document-name \"budget_update_gha_alert\" --region ${var.aws_region} --parameters '{\"ThresholdValue\":\"${var.alert_threshold}\",\"CurrentValue\":\"${var.current_value}\"}'" : "echo 'Threshold not reached, skipping SSM execution'"
   }
+
 
   depends_on = [aws_ssm_document.invoke_central_lambda]
 }
