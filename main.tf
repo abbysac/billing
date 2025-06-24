@@ -852,10 +852,28 @@ resource "null_resource" "trigger_ssm_on_threshold" {
         aws ssm start-automation-execution \
           --document-name ""budget_update_gha_alert" \
           --region us-east-1 \
-          --parameters "{\"ThresholdValue\":\" threshold_percent\",\"CurrentValue\":\"${var.current_value}\"}"
+          --parameters "{\"ThresholdValue\":\"${var.alert_threshold}\",\"CurrentValue\":\"${var.current_value}\"}"
       EOT : "echo 'Threshold not reached, skipping SSM execution'"
     }
 
     # Ensure the SSM document exists before triggering
     depends_on = [aws_ssm_document.invoke_central_lambda]
   }
+
+variable "current_value" {
+  description = "The current value to compare against the threshold"
+  type        = number
+  default     = 0
+}
+
+variable "ssm_document_name" {
+  description = "The name of the SSM document to execute"
+  type        = string
+  default     = "alert_threshold_reached"
+}
+
+variable "aws_region" {
+  description = "AWS region for SSM execution"
+  type        = string
+  default     = "us-east-1"
+}
