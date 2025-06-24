@@ -16,33 +16,6 @@ class DecimalEncoder(json.JSONEncoder):
             return float(obj)
         return super().default(obj)
     
-#  Define this outside any try block
-# def send_email_with_retry(source, destination, subject, body, retries=4, base_delay=2):
-#     for attempt in range(retries):
-#         try:
-#             response = ses.send_email(
-#                 Source=source,
-#                 Destination={'ToAddresses': [destination]},
-#                 Message={
-#                     'Subject': {'Data': subject},
-#                     'Body': {
-#                         'Text': {
-#                             'Data': body,
-#                             'Charset': 'UTF-8'
-#                         }
-#                     }
-#                 }
-#             )
-#             print(f"Email sent! Message ID: {response['MessageId']}")
-#             return response
-#         except ClientError as e:
-#             if e.response['Error']['Code'] == 'Throttling':
-#                 wait_time = base_delay * (2 ** attempt)
-#                 print(f"[RETRY] SES Throttled. Attempt {attempt + 1}/{retries}. Retrying in {wait_time}s...")
-#                 time.sleep(wait_time)
-#             else:
-#                 raise e
-#     raise Exception("Exceeded max retries for SES send_email due to throttling.")
 
     
 
