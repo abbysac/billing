@@ -674,14 +674,14 @@ resource "aws_ssm_document" "invoke_central_lambda" {
         type    = "String"
         default = "752338767189"
       }
-      alert_threshold = {
-        type    = "String"
-        default = 80
-      }
-      alert_trigger = {
-        type    = "String"
-        default = "ACTUAL"
-      }
+      # alert_threshold = {
+      #   type    = "String"
+      #   default = 80
+      # }
+      # alert_trigger = {
+      #   type    = "String"
+      #   default = "ACTUAL"
+      # }
     }
 
 
