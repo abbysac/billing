@@ -857,9 +857,12 @@ resource "null_resource" "trigger_ssm_on_threshold" {
   # Execute SSM document only when threshold is reached
   provisioner "local-exec" {
     when    = create
-    command = alert_threshold == "trigger" ? "aws ssm start-automation-execution --document-name \"budget_update_gha_alert\" --region ${var.aws_region} --parameters '{\"ThresholdValue\":\"alert_threshold\",\"CurrentValue\":\"alert_trigger\"}'" : "echo 'Threshold not reached, skipping SSM execution'"
-
-    # Ensure the SSM document exists before triggering
-    depends_on = [aws_ssm_document.invoke_central_lambda]
+    command = <<-EOT
+      aws ssm start-automation-execution \
+        --document-name "budget_update_gha_alert" \
+        --region us-east-1
+    EOT
   }
+
+  depends_on = [aws_ssm_document.invoke_central_lambda] #"arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
 }
