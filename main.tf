@@ -854,7 +854,8 @@ resource "null_resource" "trigger_ssm_on_threshold" {
         --document-name "budget_update_gha_alert" \
         --region us-east-1 \
         --parameters "{\"ThresholdValue\":\"${var.alert_threshold}\",\"CurrentValue\":\"${var.current_value}\"}"
-    EOT : "echo 'Threshold not reached, skipping SSM execution'"
+    EOT 
+    : "echo 'Threshold not reached, skipping SSM execution'"
   }
 
   # Ensure the SSM document exists before triggering
