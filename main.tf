@@ -838,42 +838,25 @@ EOF
   })
 }
 
+# Local variable to determine if threshold is reached
 # Null resource to trigger SSM document when threshold is reached
 resource "null_resource" "trigger_ssm_on_threshold" {
   # Trigger the resource when the threshold condition changes
-    triggers = {
-      threshold_status = locals.threshold_reached
-    }
-
-  # Execute the SSM document only if the threshold is reached
-    provisioner "local-exec" {
-      when    = create
-      command = locals.threshold_reached == "trigger" ? <<-EOT
-        aws ssm start-automation-execution \
-          --document-name ""budget_update_gha_alert" \
-          --region us-east-1 \
-          --parameters "{\"ThresholdValue\":\"${var.alert_threshold}\",\"CurrentValue\":\"${var.current_value}\"}"
-      EOT : "echo 'Threshold not reached, skipping SSM execution'"
-    }
-
-    # Ensure the SSM document exists before triggering
-    depends_on = [aws_ssm_document.invoke_central_lambda]
+  triggers = {
+    threshold_status = local.threshold_reached
   }
 
-variable "current_value" {
-  description = "The current value to compare against the threshold"
-  type        = number
-  default     = 0
-}
+  # Execute the SSM document only if the threshold is reached
+  provisioner "local-exec" {
+    when    = create
+    command = locals.threshold_reached == "trigger" ? <<-EOT
+      aws ssm start-automation-execution \
+        --document-name "${var.ssm_document_name}" \
+        --region ${var.aws_region} \
+        --parameters "{\"ThresholdValue\":\"${var.alert_threshold}\",\"CurrentValue\":\"${var.current_value}\"}"
+    EOT : "echo 'Threshold not reached, skipping SSM execution'"
+  }
 
-variable "ssm_document_name" {
-  description = "The name of the SSM document to execute"
-  type        = string
-  default     = "alert_threshold_reached"
-}
-
-variable "aws_region" {
-  description = "AWS region for SSM execution"
-  type        = string
-  default     = "us-east-1"
+  # Ensure the SSM document exists before triggering
+  depends_on = [aws_ssm_document.alert_threshold_document]
 }
