@@ -674,14 +674,6 @@ resource "aws_ssm_document" "invoke_central_lambda" {
         type    = "String"
         default = "752338767189"
       }
-      # alert_threshold = {
-      #   type    = "String"
-      #   default = 80
-      # }
-      # alert_trigger = {
-      #   type    = "String"
-      #   default = "ACTUAL"
-      # }
     }
 
 
@@ -848,21 +840,56 @@ EOF
 
 
 #Null resource to trigger SSM document when threshold is reached
+# resource "null_resource" "trigger_ssm_on_threshold" {
+#   # Trigger the resource when the threshold condition changes
+#   triggers = {
+#     threshold = "alert_threshold"
+#   }
+
+#   # Execute SSM document only when threshold is reached
+#   provisioner "local-exec" {
+#     when    = create
+#     command = <<-EOT
+#       aws ssm start-automation-execution \
+#         --document-name "budget_update_gha_alert" \
+#         --region us-east-1
+#     EOT
+#   }
+
+#   depends_on = [aws_ssm_document.invoke_central_lambda] #"arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
+# }
+
+variable "alert_threshold" {
+  description = "The threshold value that triggers the SSM automation"
+  type = number
+  default = 100
+}
+
+variable "current_value" {
+  description = "The current value to compare against the threshold"
+  type = number
+  default = 0
+}
+
+locals {
+  threshold_reached = var.current_value >= var.alert_threshold ? "trigger" : "no_trigger"
+}
+
 resource "null_resource" "trigger_ssm_on_threshold" {
-  # Trigger the resource when the threshold condition changes
   triggers = {
-    threshold = "alert_threshold"
+    threshold_status = local.threshold_reached
   }
 
-  # Execute SSM document only when threshold is reached
   provisioner "local-exec" {
-    when    = create
-    command = <<-EOT
-      aws ssm start-automation-execution \
-        --document-name "budget_update_gha_alert" \
-        --region us-east-1
-    EOT
+    when = create
+      command = local.threshold_reached == "trigger" ? <<-EOT
+        aws ssm start-automation-execution \
+          --document-name "budget_update_gha_alert" \
+          --region us-east-1 \
+          --parameters "{\"ThresholdValue\":\"${var.alert_threshold}\",\"CurrentValue\":\":${var.current_value}\"}"
+      EOT
+      : "echo 'Threshold not reached, skipping SSM execution'"
   }
 
-  depends_on = [aws_ssm_document.invoke_central_lambda] #"arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
+  depends_on = [aws_ssm_document.invoke_central_lambda]
 }
