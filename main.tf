@@ -918,26 +918,20 @@ locals {
 # }
 
 resource "null_resource" "trigger_ssm_on_threshold" {
+  count = local.threshold_reached == "trigger" ? 1 : 0
+
   triggers = {
     threshold_status = local.threshold_reached
   }
 
   provisioner "local-exec" {
     when    = create
-    command = <<EOT
-      aws ssm start-automation-execution \
-        --document-name "budget_update_gha_alert" \
-        --region us-east-1
+    command = <<-EOT
+      echo "Debug: Running in shell $SHELL on $(uname -a)"
+      echo "Debug: Current value is ${var.current_value}, Alert threshold is ${var.alert_threshold}, Threshold reached is ${local.threshold_reached}"
+      aws ssm start-automation-execution --document-name "budget_update_gha_alert" --region "${var.aws_region}" || echo "SSM execution failed: $?"
     EOT
   }
-  # IF "${local.threshold_reached}" == "trigger" (
-  #   aws ssm start-automation-execution --document-name "budget_update_gha_alert" --region "${var.aws_region}" --parameters "{\"AlertThreshold\":[\"${var.alert_threshold}\"],\"AlertTrigger\":[\"ACTUAL\"]}"
-  # ) ELSE (
-  #   ECHO Threshold not reached, skipping SSM execution
-  # )
-  # EOT
-  # }
-
 
   depends_on = [aws_ssm_document.invoke_central_lambda]
 }
