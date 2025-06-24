@@ -858,5 +858,5 @@ resource "null_resource" "trigger_ssm_on_threshold" {
   }
 
   # Ensure the SSM document exists before triggering
-  depends_on = [aws_ssm_document.alert_threshold_document]
+  depends_on = [aws_ssm_document.invoke_central_lambda]
 }
