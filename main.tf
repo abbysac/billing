@@ -886,7 +886,7 @@ locals {
 
 resource "null_resource" "trigger_ssm_on_threshold" {
   triggers = {
-    threshold_status = locals.threshold_reached
+    threshold_status = local.threshold_reached
   }
 
   provisioner "local-exec" {
