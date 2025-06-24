@@ -850,7 +850,7 @@ resource "null_resource" "trigger_ssm_on_threshold" {
   provisioner "local-exec" {
     when    = create
     command = locals.threshold_reached == "trigger" ? "aws ssm start-automation-execution --document-name \"budget_update_gha_alert\" --region us-east-1" 
-    #--parameters '{\"ThresholdValue\":\"alert_threshold\",\"CurrentValue\":\"${var.current_value}\"}'" : "echo 'Threshold not reached, skipping SSM execution'"
+    
   }
 
   # Ensure the SSM document exists before triggering
