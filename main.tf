@@ -871,7 +871,7 @@ EOF
 variable "alert_threshold" {
   description = "The threshold value that triggers the SSM automation"
   type        = number
-  default     = 100
+  default     = 80
 }
 
 # variable "current_value" {
