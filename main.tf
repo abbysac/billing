@@ -676,7 +676,7 @@ resource "aws_ssm_document" "invoke_central_lambda" {
       }
       alert_threshold = {
         type    = "String"
-        default = locals.alert_threshold
+        default = 80
       }
       alert_trigger = {
         type    = "String"
