@@ -838,7 +838,6 @@ EOF
   })
 }
 
-
 # Null resource to trigger SSM document when threshold is reached
 resource "null_resource" "trigger_ssm_on_threshold" {
   # Trigger the resource when the threshold condition changes
@@ -853,7 +852,10 @@ resource "null_resource" "trigger_ssm_on_threshold" {
         aws ssm start-automation-execution \
           --document-name ""budget_update_gha_alert" \
           --region us-east-1 \
+          --parameters "{\"ThresholdValue\":\" threshold_percent\",\"CurrentValue\":\"${var.current_value}\"}"
+      EOT : "echo 'Threshold not reached, skipping SSM execution'"
     }
-    # Ensure the SSM document exists before triggering depends onssm document
+
+    # Ensure the SSM document exists before triggering
     depends_on = [aws_ssm_document.invoke_central_lambda]
   }
