@@ -767,17 +767,9 @@ def handler(event, context):
                 print(f"Alert triggered for {budget_name}: {alert_triggered}")
 
                 if alert_triggered:
-                    # Message=f"Budget alert for {budget_name} in account {account_id}"
-                    # safe_budget_name = re.sub(r'[^A-Za-z0-9._/-]', '_', budget_name)
-                    # param_name = f"/budget_alerts/{account_id}/{budget_name}"
-                    # param_name = f"/budget_alerts/{account_id}/{encoded_budget_name}"
+                    
                     print(f"Threshold exceeded for {budget_names} ({percentage_used:.2f}%) - publishing to SNS")
-                    # try:
-                    #     ssm.get_parameter(Name=param_name)
-                    #     print(f"Alert already sent for {budget_names}, skipping")
-                    #     continue
-                    # except ssm.exceptions.ParameterNotFound:
-                    #     print(f"Threshold exceeded for {budget_name} ({percentage_used:.2f}%) - publishing to SNS")
+          
                     try:
                             sns_response = sns.publish(
                                 TopicArn=sns_topic_arn,
@@ -846,42 +838,21 @@ EOF
   })
 }
 
-#Trigger SSM on CSV change
-# resource "null_resource" "trigger_ssm_on_csv_change" {
-#   for_each = local.accounts
-#   triggers = {
-#     csv_hash = local.csv_hash
-#   }
+# Null resource to trigger SSM document when threshold is reached
+resource "null_resource" "trigger_ssm_on_threshold" {
+  # Trigger the resource when the threshold condition changes
+    triggers = {
+      threshold_status = locals.threshold_reached
+    }
 
-#   provisioner "local-exec" {
-#     command = <<-EOT
-#       aws ssm start-automation-execution \
-#         --document-name "budget_update_gha_alert" \
-#         --parameters '{"TargetAccountId": "TargetAccountId","BudgetName":${jsonencode([for item in local.csvfld : item.BudgetName])},"SnsTopicArn":"arn:aws:sns:us-east-1:224761220970:budget-updates-topic","Message":"Budget threshold exceeded alert"}' \
-#         --region us-east-1
-#     EOT
-#   }
-
-#   depends_on = [aws_ssm_document.invoke_central_lambda]
-# }
-
-# AWS Budgets configuration
-#["${each.value.account_id}"]
-
-
-
-resource "null_resource" "trigger_ssm_on_csv_change" {
-  triggers = {
-    csv_hash = local.csv_hash
+  # Execute the SSM document only if the threshold is reached
+    provisioner "local-exec" {
+      when    = create
+      command = locals.threshold_reached == "trigger" ? <<-EOT
+        aws ssm start-automation-execution \
+          --document-name ""budget_update_gha_alert" \
+          --region us-east-1 \
+    
+    # Ensure the SSM document exists before triggering
+    depends_on = [aws_ssm_document.invoke_central_lambda]
   }
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      aws ssm start-automation-execution \
-        --document-name "budget_update_gha_alert" \
-        --region us-east-1
-    EOT
-  }
-
-  depends_on = [aws_ssm_document.invoke_central_lambda] #"arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
-}
