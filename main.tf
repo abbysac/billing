@@ -851,8 +851,8 @@ resource "null_resource" "trigger_ssm_on_threshold" {
     when    = create
     command = locals.threshold_reached == "trigger" ? <<-EOT
       aws ssm start-automation-execution \
-        --document-name "${var.ssm_document_name}" \
-        --region ${var.aws_region} \
+        --document-name "budget_update_gha_alert" \
+        --region us-east-1 \
         --parameters "{\"ThresholdValue\":\"${var.alert_threshold}\",\"CurrentValue\":\"${var.current_value}\"}"
     EOT : "echo 'Threshold not reached, skipping SSM execution'"
   }
