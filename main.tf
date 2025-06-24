@@ -674,6 +674,14 @@ resource "aws_ssm_document" "invoke_central_lambda" {
         type    = "String"
         default = "752338767189"
       }
+      alert_threshold = {
+        type    = "String"
+        default = locals.alert_threshold
+      }
+      alert_trigger = {
+        type    = "String"
+        default = "ACTUAL"
+      }
     }
 
 
@@ -849,15 +857,9 @@ resource "null_resource" "trigger_ssm_on_threshold" {
   # Execute SSM document only when threshold is reached
   provisioner "local-exec" {
     when    = create
-    command = locals.threshold_reached == "trigger" ? "aws ssm start-automation-execution --document-name \"budget_update_gha_alert\" --region us-east-1" 
-    
-  }
+    command = alert_threshold == "trigger" ? "aws ssm start-automation-execution --document-name \"budget_update_gha_alert\" --region ${var.aws_region} --parameters '{\"ThresholdValue\":\"alert_threshold\",\"CurrentValue\":\"alert_trigger\"}'" : "echo 'Threshold not reached, skipping SSM execution'"
 
-  # Ensure the SSM document exists before triggering
-  depends_on = [aws_ssm_document.invoke_central_lambda]
-}
-variable "current_value" {
-  description = "The current value to compare against the threshold"
-  type        = number
-  default     = 0
+    # Ensure the SSM document exists before triggering
+    depends_on = [aws_ssm_document.invoke_central_lambda]
+  }
 }
