@@ -6,14 +6,14 @@ variable "linked_account" {
   ]
 }
 
-variable "current_value" {
-  description = "The current value to compare against the threshold"
-  type        = number
-  default     = 0
-}
+# variable "current_value" {
+#   description = "The current value to compare against the threshold"
+#   type        = number
+#   default     = 0
+# }
 
-variable "aws_region" {
-  description = "AWS region for SSM execution"
-  type        = string
-  default     = "us-east-1"
-}
+# variable "aws_region" {
+#   description = "AWS region for SSM execution"
+#   type        = string
+#   default     = "us-east-1"
+# }

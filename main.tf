@@ -868,11 +868,11 @@ EOF
 #   depends_on = [aws_ssm_document.invoke_central_lambda] #"arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
 # }
 
-variable "alert_threshold" {
-  description = "The threshold value that triggers the SSM automation"
-  type        = number
-  default     = 80
-}
+# variable "alert_threshold" {
+#   description = "The threshold value that triggers the SSM automation"
+#   type        = number
+#   default     = 80
+# }
 
 # variable "current_value" {
 #   description = "The current value to compare against the threshold"
@@ -880,9 +880,9 @@ variable "alert_threshold" {
 #   default     = 0
 # }
 
-locals {
-  threshold_reached = var.current_value >= var.alert_threshold ? "trigger" : "no_trigger"
-}
+# locals {
+#   threshold_reached = var.current_value >= var.alert_threshold ? "trigger" : "no_trigger"
+# }
 
 # resource "null_resource" "trigger_ssm_on_threshold" {
 #   triggers = {
@@ -917,20 +917,100 @@ locals {
 #   depends_on = [aws_ssm_document.invoke_central_lambda]
 # }
 
-resource "null_resource" "trigger_ssm_on_threshold" {
-  count = local.threshold_reached == "trigger" ? 1 : 0
+# variable "current_value" {
+#   type    = String
+#   default = local.budget_amount
+# }
 
+# variable "alert_threshold" {
+#   type    = number
+#   default = 100
+# }
+
+
+
+# locals {
+#   threshold_reached = try(tonumber(var.current_value) >= tonumber(var.alert_threshold), false) ? "trigger" : "no_trigger"
+# }
+
+# output "threshold_debug" {
+#   value = {
+#     current_value     = var.current_value
+#     alert_threshold   = var.alert_threshold
+#     threshold_reached = local.threshold_reached
+#   }
+# }
+
+# resource "null_resource" "trigger_ssm_on_threshold" {
+#   count = local.threshold_reached == "trigger" ? 1 : 0
+
+#   triggers = {
+#     threshold_status = local.threshold_reached
+#   }
+
+#   provisioner "local-exec" {
+#     when    = create
+#     command = <<EOT
+#     echo Debug: Current value is ${var.current_value}, Alert threshold is ${var.alert_threshold}, Threshold reached is ${local.threshold_reached}
+#     aws ssm start-automation-execution --document-name "budget_update_gha_alert" --region "${var.aws_region}" || echo SSM execution failed: %ERRORLEVEL%
+#   EOT
+#   }
+
+#   depends_on = [aws_ssm_document.invoke_central_lambda]
+# }
+
+variable "current_value" {
+  description = "The current budget usage percent"
+  type        = number
+}
+
+variable "alert_threshold" {
+  description = "The threshold percent to trigger the alert"
+  type        = number
+}
+
+variable "aws_region" {
+  default = "us-east-1"
+}
+
+variable "target_account_id" {
+  default = "224761220970"
+}
+
+variable "sns_topic_arn" {
+  default = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
+}
+
+variable "budget_name" {
+  default = "ABC Operations DEV Account Overall Budget"
+}
+
+variable "message" {
+  default = "This is to notify you that you have exceeded your budget threshold"
+}
+
+locals {
+  threshold_reached = var.current_value >= var.alert_threshold ? "trigger" : "no_trigger"
+}
+
+resource "null_resource" "trigger_ssm_on_threshold" {
   triggers = {
     threshold_status = local.threshold_reached
   }
 
   provisioner "local-exec" {
     when    = create
-    command = <<-EOT
-      echo "Debug: Running in shell $SHELL on $(uname -a)"
-      echo "Debug: Current value is ${var.current_value}, Alert threshold is ${var.alert_threshold}, Threshold reached is ${local.threshold_reached}"
-      aws ssm start-automation-execution --document-name "budget_update_gha_alert" --region "${var.aws_region}" || echo "SSM execution failed: $?"
-    EOT
+    command = <<EOT
+if [ "${local.threshold_reached}" == "trigger" ]; then
+  echo "Threshold exceeded, triggering SSM..."
+  aws ssm start-automation-execution \
+    --document-name "budget_update_gha_alert" \
+    --region "${var.aws_region}" \
+    --parameters '{"TargetAccountId":["${var.target_account_id}"],"BudgetName":["${var.budget_name}"],"SnsTopicArn":["${var.sns_topic_arn}"],"Message":["${var.message}"]}'
+else
+  echo "Threshold not reached, skipping SSM execution"
+fi
+EOT
   }
 
   depends_on = [aws_ssm_document.invoke_central_lambda]
