@@ -10,6 +10,7 @@ locals {
       alert_trigger   = row.Alert1Trigger
       sns_topic_arn   = row.SNSTopicArn
       linked_accounts = contains(keys(row), "linked_accounts") ? jsondecode(row.linked_accounts) : []
+      threshold_reached = var.current_value >= var.alert_threshold ? "trigger" : "no_trigger"
     }
   }
   csv_hash = filemd5("./csvdata.csv")
