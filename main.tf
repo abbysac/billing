@@ -838,27 +838,25 @@ EOF
   })
 }
 
-# Local variable to determine if threshold is reached
-# Null resource to trigger SSM document when threshold is reached
+
+#Null resource to trigger SSM document when threshold is reached
 resource "null_resource" "trigger_ssm_on_threshold" {
   # Trigger the resource when the threshold condition changes
   triggers = {
-    threshold_status = local.threshold_reached
+    threshold_status = locals.threshold_reached
   }
 
-  # Execute the SSM document only if the threshold is reached
+  # Execute SSM document only when threshold is reached
   provisioner "local-exec" {
     when    = create
-    command = locals.threshold_reached == "trigger" ? <<-EOT
-      aws ssm start-automation-execution \
-        --document-name "budget_update_gha_alert" \
-        --region us-east-1 \
-        --parameters "{\"ThresholdValue\":\"${var.alert_threshold}\",\"CurrentValue\":\"${var.current_value}\"}"
-    EOT
-    : "echo 'Threshold not reached, skipping SSM execution'"
+    command = locals.threshold_reached == "trigger" ? "aws ssm start-automation-execution --document-name \"budget_update_gha_alert\" --region us-east-1 --parameters '{\"ThresholdValue\":\"alert_threshold\",\"CurrentValue\":\"${var.current_value}\"}'" : "echo 'Threshold not reached, skipping SSM execution'"
   }
-
 
   # Ensure the SSM document exists before triggering
   depends_on = [aws_ssm_document.invoke_central_lambda]
+}
+variable "current_value" {
+  description = "The current value to compare against the threshold"
+  type        = number
+  default     = 0
 }
