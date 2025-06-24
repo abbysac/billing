@@ -853,6 +853,6 @@ resource "null_resource" "trigger_ssm_on_threshold" {
           --document-name ""budget_update_gha_alert" \
           --region us-east-1 \
     
-    # Ensure the SSM document exists before triggering
+    # Ensure the SSM document exists before triggering depends onssm document
     depends_on = [aws_ssm_document.invoke_central_lambda]
   }
