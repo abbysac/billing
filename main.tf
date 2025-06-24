@@ -838,6 +838,7 @@ EOF
   })
 }
 
+
 # Null resource to trigger SSM document when threshold is reached
 resource "null_resource" "trigger_ssm_on_threshold" {
   # Trigger the resource when the threshold condition changes
