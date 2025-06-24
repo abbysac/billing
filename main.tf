@@ -851,7 +851,7 @@ EOF
 resource "null_resource" "trigger_ssm_on_threshold" {
   # Trigger the resource when the threshold condition changes
   triggers = {
-    threshold_status = alert_trigger
+    threshold_status = threshold
   }
 
   # Execute SSM document only when threshold is reached
