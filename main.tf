@@ -551,7 +551,8 @@ resource "aws_iam_role_policy" "ssm_automation_policy" {
         Action = [
           "budgets:DescribeBudget",
           "budgets:ViewBudget",
-          "ssm:GetParameter"
+          "ssm:GetParameter",
+          "ssm:StartAutomationExecution"
 
         ],
         Resource = "*"
