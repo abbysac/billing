@@ -1043,8 +1043,12 @@ aws ssm start-automation-execution \
   --region "us-east-1" \
   
   }'
+else
+  echo "Threshold not reached, skipping SSM execution"
+fi
 EOT
-  }
+# EOT
+#   }
 
-  depends_on = [aws_ssm_document.invoke_central_lambda]
-}
+  # depends_on = [aws_ssm_document.invoke_central_lambda]
+# }
