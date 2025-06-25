@@ -68,6 +68,15 @@ def lambda_handler(event, context):
         logger.info(f"{account_id} - {budget_name} used {percentage_used:.2f}% of budget, threshold: {threshold}%")
 
         if percentage_used < threshold:
+            try:
+                response = ssm.start_automation_execution(
+                DocumentName ='budget_update_gha_alert',
+                Parameters ={'TargetAccountId': [account_id]}
+                )
+                print("SSM Automation triggered:", response)
+            except Exception as e:
+                print(f"Failed to start SSM automation")
+                
             logger.info(f"{budget_name} usage ({percentage_used:.2f}%) below threshold ({threshold}%) - no email sent")
             return {"statusCode": 200, "body": "Threshold not exceeded"}
 
