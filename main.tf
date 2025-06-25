@@ -1041,11 +1041,7 @@ echo "Triggering SSM for ${each.value.BudgetName} (Actual: ${each.value.ActualSp
 aws ssm start-automation-execution \
   --document-name "budget_update_gha_alert" \
   --region "us-east-1" \
-  # --parameters '{
-  #   "TargetAccountId": ["${each.value.AccountId}"],
-  #   "BudgetName": ["${each.value.BudgetName}"],
-  #   "SnsTopicArn": ["arn:aws:sns:us-east-1:${each.value.AccountId}:budget-updates-topic"],
-  #   "Message": ["Budget threshold exceeded: ${each.value.ActualSpend} >= ${each.value.Alert1Threshold}"]
+  
   }'
 EOT
   }
