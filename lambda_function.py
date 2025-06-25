@@ -53,8 +53,8 @@ def lambda_handler(event, context):
             except Exception as e:
                 print(f"Failed to start SSM automation: {e}")
 
-    subject = f"AWS Budget Alert: {budget_name}"
-    email_body = f"""
+        subject = f"AWS Budget Alert: {budget_name}"
+        email_body = f"""
 {account_id} {budget_name}
 Dear System Owner,
 
@@ -62,7 +62,7 @@ The actual cost accrued yesterday in "{environment}" for "{budget_name}" has exc
 {percent_used:.1f}% of the monthly budget of ${budget_limit:.2f}.
 Current actual spend: ${actual_spend:.2f}.
 
-Thank you,  
+Thank you, 
 OMF CloudOps
 
 Budget Name: {budget_name}
@@ -75,20 +75,20 @@ Full Message:
 """
 
     try:
-            response = ses.send_email(
-                Source=SENDER_EMAIL,
-                Destination={'ToAddresses': [RECIPIENT_EMAIL]},
-                Message={
-                    'Subject': {'Data': subject},
-                    'Body': {
-                         'Text': {
-                            'Data': email_body,
-                             'Charset': 'UTF-8'
+        response = ses.send_email(
+            Source=SENDER_EMAIL,
+            Destination={'ToAddresses': [RECIPIENT_EMAIL]},
+            Message={
+                'Subject': {'Data': subject},
+                'Body': {
+                     'Text': {
+                         'Data': email_body,
+                            'Charset': 'UTF-8'
  }
  }
  }
  )
-            print(f"Email sent! Message ID: {response['MessageId']}")
+        print(f"Email sent! Message ID: {response['MessageId']}")
     except Exception as e:
         print(f"Failed to send email: {str(e)}")
         return {"statusCode": 500, "body": "Failed to send email"}
