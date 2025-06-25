@@ -1047,8 +1047,8 @@ else
   echo "Threshold not reached, skipping SSM execution"
 fi
 EOT
-# EOT
-#   }
+    # EOT
+  }
 
   # depends_on = [aws_ssm_document.invoke_central_lambda]
 }
