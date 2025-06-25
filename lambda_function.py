@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 
 ses = boto3.client('ses', region_name='us-east-1')
 
-SENDER_EMAIL = "abbysac@gmail.com"
+SENDER_EMAIL = "abbysac@gmail.com"  # SES-verified email
 RECIPIENT_EMAIL = "camleous@yahoo.com"
 
 class DecimalEncoder(json.JSONEncoder):
@@ -45,14 +45,14 @@ def lambda_handler(event, context):
     #     ...
     # print("Received Event:", json.dumps(event, indent=2))
 
-    # try:
-    #     sns_record = event['Records'][0]['Sns']
-    #     sns_message_str = sns_record['Message']
-    #     message = json.loads(sns_message_str)
-    #     logging.info(f"Processed SNS Message: {message}")
-    # except Exception as e:
-    #     print(f"Failed to parse SNS message: {e}")
-    #     return {"statusCode": 400, "body": "Invalid SNS message format"}
+    try:
+        sns_record = event['Records'][0]['Sns']
+        sns_message_str = sns_record['Message']
+        message = json.loads(sns_message_str)
+        logging.info(f"Processed SNS Message: {message}")
+    except Exception as e:
+        print(f"Failed to parse SNS message: {e}")
+        return {"statusCode": 400, "body": "Invalid SNS message format"}
 
     try:
         account_id = message.get("account_id")
