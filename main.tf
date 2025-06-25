@@ -994,61 +994,19 @@ EOF
 # variable "message" {
 #   default = "This is to notify you that you have exceeded your budget threshold"
 # }
-variable "csvfld" {
-  type = list(object({
-    AccountId       = string
-    BudgetName      = string
-    Alert1Threshold = number
-    ActualSpend     = number
-  }))
-
-  default = [
-    {
-      AccountId       = "224761220970"
-      BudgetName      = "ABC Operations DEV Account Overall Budget"
-      Alert1Threshold = 80
-      ActualSpend     = 100
-    },
-    {
-      AccountId       = "752338767189"
-      BudgetName      = "ABC Operations PROD Account Overall Budget"
-      Alert1Threshold = 100
-      ActualSpend     = 99.9
-    }
-  ]
-}
-
-locals {
-  filtered_alerts = [
-    for item in var.csvfld : item if item.ActualSpend >= item.Alert1Threshold
-  ]
-}
-
-resource "null_resource" "trigger_ssm_on_threshold" {
-  for_each = { for idx, item in local.filtered_alerts : idx => item }
-
+# 
+resource "null_resource" "trigger_ssm_on_csv_change" {
   triggers = {
-    budget_name  = each.value.BudgetName
-    account_id   = each.value.AccountId
-    threshold    = tostring(each.value.Alert1Threshold)
-    actual_value = tostring(each.value.ActualSpend)
+    budget_name = aws_budgets_budget.budget_notification.name
   }
 
   provisioner "local-exec" {
-    when        = create
-    interpreter = ["cmd.exe", "/C"] # For Windows WSL or Git Bash use ["cmd.exe", "/C"] or ["PowerShell", "-Command"]
-    command     = <<EOT
-echo "Triggering SSM for ${each.value.BudgetName} (Actual: ${each.value.ActualSpend}, Threshold: ${each.value.Alert1Threshold})"
-aws ssm start-automation-execution \
-  --document-name "budget_update_gha_alert" \
-  --region "us-east-1" \
-  --parameters '{
-    "TargetAccountId": ["${each.value.AccountId}"],
-    "BudgetName": ["${each.value.BudgetName}"],
-    "SnsTopicArn": ["arn:aws:sns:us-east-1:224761220970:budget-updates-topic"],
-    "Message": ["Budget threshold exceeded: ${each.value.ActualSpend} >= ${each.value.Alert1Threshold}"]
-  }'
-EOT
+    command = <<-EOT
+      aws ssm start-automation-execution \
+        --document-name "budget_update_gha_alert" \
+        --region us-east-1
+    EOT
   }
-  depends_on = [aws_ssm_document.invoke_central_lambda]
+
+  depends_on = [aws_ssm_document.invoke_central_lambda] #"arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
 }
