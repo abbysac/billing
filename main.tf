@@ -1051,4 +1051,4 @@ EOT
 #   }
 
   # depends_on = [aws_ssm_document.invoke_central_lambda]
-# }
+}
