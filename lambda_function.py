@@ -22,26 +22,30 @@ class DecimalEncoder(json.JSONEncoder):
 def lambda_handler(event, context):
     logger.info(f"Received Event: {json.dumps(event, indent=2)}")
 
-     # Extract SNS message
-    if "Records" in event and isinstance(event["Records"], list):
-        try:
+    # Extract message
+    try:
+        if "Records" in event and isinstance(event["Records"], list) and len(event["Records"]) > 0:
             sns_message = event["Records"][0]["Sns"]["Message"]
-            message = json.loads(sns_message)
-        except (KeyError, IndexError, json.JSONDecodeError) as e:
-            print(f"Error parsing SNS message: {str(e)}")
-            return {"statusCode": 400, "body": "Invalid SNS event format"}
-    else:
-        print("Direct Budget event received, using raw event.")
-        message = event
+            if not sns_message:
+                logger.error("SNS message is empty")
+                return {"statusCode": 400, "body": "Empty SNS message"}
+            message = json.loads(sns_message) if isinstance(sns_message, str) else sns_message
+            logger.info(f"Parsed SNS Message: {json.dumps(message, indent=2)}")
+        else:
+            logger.info("Direct event received (e.g., from SSM), using raw event.")
+            message = event
+    except (KeyError, IndexError, json.JSONDecodeError) as e:
+        logger.error(f"Error parsing event: {str(e)}")
+        return {"statusCode": 400, "body": f"Invalid event format: {str(e)}"}
 
     # Extract budget details
     try:
-        account_id = message.get("account_id", "Unknown")
-        budget_name = message.get("budgetName", "billing-alert")
-        actual_spend = float(message.get("actual_spend", message.get("actualAmount", 0.0)))
-        budget_limit = float(message.get("budget_limit", message.get("budgetLimit", 1.0)))
+        account_id = message.get("account_id", message.get("TargetAccountId", "Unknown"))
+        budget_name = message.get("budgetName", message.get("BudgetName", "billing-alert"))
+        actual_spend = float(message.get("actual_spend", message.get("ActualSpend", message.get("actualAmount", 0.0))))
+        budget_limit = float(message.get("budget_limit", message.get("BudgetLimit", message.get("budgetLimit", 1.0))))
         percentage_used = float(message.get("percentage_used", (actual_spend / budget_limit * 100 if budget_limit else 0)))
-        alert_trigger = message.get("alert_trigger", message.get("alertType", "ACTUAL"))
+        alert_trigger = message.get("alert_trigger", message.get("AlertTrigger", message.get("alertType", "ACTUAL")))
         environment = message.get("environment", "stage")
         threshold = float(message.get("threshold_percent", message.get("AlertThreshold", 80.0)))
 
