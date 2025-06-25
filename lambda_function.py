@@ -1,124 +1,100 @@
 import json
 import boto3
 import decimal
-import logging
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
+ses = boto3.client('ses')
+ssm = boto3.client('ssm')
 
-# SES client
-ses = boto3.client('ses', region_name='us-east-1')
-
-SENDER_EMAIL = "abbysac@gmail.com"  # SES-verified email
+SENDER_EMAIL = "abbysac@gmail.com"
 RECIPIENT_EMAIL = "camleous@yahoo.com"
 
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, decimal.Decimal):
-            return float(obj)
+           return float(obj)
         return super().default(obj)
 
 def lambda_handler(event, context):
-    logger.info(f"Received Event: {json.dumps(event, indent=2)}")
+    print("Received Event:", json.dumps(event, indent=2))
 
-    # Extract message
     try:
-        if "Records" in event and isinstance(event["Records"], list) and len(event["Records"]) > 0:
-            sns_message = event["Records"][0]["Sns"]["Message"]
-            if not sns_message:
-                logger.error("SNS message is empty")
-                return {"statusCode": 400, "body": "Empty SNS message"}
-            if isinstance(sns_message, str) and sns_message.strip():
-                try:
-                    message = json.loads(sns_message)
-                except json.JSONDecodeError as e:
-                    logger.error(f"Failed to decode JSON from SNS message: {str(e)}")
-                    return {"statusCode": 400, "body": "Invalid SNS JSON format"}
-            else:
-                logger.error("SNS message is empty or not a string")
-                return {"statusCode": 400, "body": "Empty or malformed SNS message"}
+     # Extract SNS payload
+        sns_record = event['Records'][0]['Sns']
+        sns_message_str = sns_record['Message']
+        message = json.loads(sns_message_str)
+    except Exception as e:
+        print(f"Failed to parse SNS message: {e}")
+        return {
+            "statusCode": 400,
+             "body": "Invalid SNS message format"
+ }
 
-            #message = json.loads(sns_message) if isinstance(sns_message, str) else sns_message
-            #logger.info(f"Parsed SNS Message: {json.dumps(message, indent=2)}")
-            logger.info(f"Raw SNS message: '{sns_message}'")
-
-        else:
-            logger.info("Direct event received (e.g., from SSM), using raw event.")
-            message = event
-    except (KeyError, IndexError, json.JSONDecodeError) as e:
-        logger.error(f"Error parsing event: {str(e)}")
-        return {"statusCode": 400, "body": f"Invalid event format: {str(e)}"}
-
-    # Extract budget details
     try:
+        # Extract values
         account_id = message.get("account_id")
         budget_name = message.get("budgetName")
-        actual_spend = float(message.get("actualAmount", 0.0))
+        threshold = float(message.get("threshold", 80.0))
+        actual_spend = float(message.get("amount", 0.0))
         budget_limit = float(message.get("budgetLimit", 1.0))
-        percentage_used = float(message.get("percentage_used", 0.0))        
-        alert_trigger = message.get("alert_trigger", "ACTUAL")
-        environment = message.get("environment", "stage")
-        threshold = float(message.get("threshold_percent", 80.0))
-        if not all([account_id, budget_name]):
-            error_msg = f"Missing required fields: {message}"
-            logger.error(error_msg)
-            return {"statusCode": 400, "body": error_msg}
+        environment = message.get("environment", "prod")
 
-        logger.info(f"{account_id} - {budget_name} used {percentage_used:.2f}% of budget, threshold: {threshold}%")
+        percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
 
-        if percentage_used < threshold:
+        print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
+
+         # 🔁 Trigger SSM Automation if over threshold
+        if percent_used >= threshold:
             try:
                 response = ssm.start_automation_execution(
-                DocumentName ='budget_update_gha_alert',
-                Parameters ={'TargetAccountId': [account_id]}
-                )
+                DocumentName='budget_update_gha_alert',
+                Parameters={'TargetAccountId': [account_id]}
+ )
                 print("SSM Automation triggered:", response)
             except Exception as e:
-                print(f"Failed to start SSM automation")
-                
-            logger.info(f"{budget_name} usage ({percentage_used:.2f}%) below threshold ({threshold}%) - no email sent")
-            return {"statusCode": 200, "body": "Threshold not exceeded"}
+                print(f"Failed to start SSM automation: {e}")
 
-        # Send email
-        subject = f"AWS Budget Alert: {budget_name}"
-        email_body = f"""
+    subject = f"AWS Budget Alert: {budget_name}"
+    email_body = f"""
 {account_id} {budget_name}
 Dear System Owner,
 
-The actual cost accrued in "{environment}" for "{budget_name}" has exceeded
-{percentage_used:.1f}% of the monthly budget of ${budget_limit:.2f}.
+The actual cost accrued yesterday in "{environment}" for "{budget_name}" has exceeded
+{percent_used:.1f}% of the monthly budget of ${budget_limit:.2f}.
 Current actual spend: ${actual_spend:.2f}.
 
-Thank you,  
+Thank you,  
 OMF CloudOps
 
 Budget Name: {budget_name}
 Account ID: {account_id}
 Environment: {environment}
 Budget Limit: ${budget_limit:.2f}
-Alert Trigger: {alert_trigger}
 
 Full Message:
 {json.dumps(message, indent=2, cls=DecimalEncoder)}
 """
 
-        response = ses.send_email(
-            Source=SENDER_EMAIL,
-            Destination={'ToAddresses': [RECIPIENT_EMAIL]},
-            Message={
-                'Subject': {'Data': subject},
-                'Body': {
-                    'Text': {
-                        'Data': email_body,
-                        'Charset': 'UTF-8'
-                    }
-                }
-            }
-        )
-        logger.info(f"Email sent! Message ID: {response['MessageId']}")
+    try:
+            response = ses.send_email(
+                Source=SENDER_EMAIL,
+                Destination={'ToAddresses': [RECIPIENT_EMAIL]},
+                Message={
+                    'Subject': {'Data': subject},
+                    'Body': {
+                         'Text': {
+                            'Data': email_body,
+                             'Charset': 'UTF-8'
+ }
+ }
+ }
+ )
+            print(f"Email sent! Message ID: {response['MessageId']}")
+    except Exception as e:
+        print(f"Failed to send email: {str(e)}")
+        return {"statusCode": 500, "body": "Failed to send email"}
+
         return {"statusCode": 200, "body": "Email sent successfully"}
 
     except Exception as e:
-        logger.error(f"Error in main handler logic: {str(e)}")
-        return {"statusCode": 500, "body": f"Unexpected processing error: {str(e)}"}
+        print(f"Error in main handler logic: {e}")
+        return {"statusCode": 400, "body": "Unexpected processing error"}
