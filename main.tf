@@ -997,7 +997,7 @@ EOF
 # 
 resource "null_resource" "trigger_ssm_on_csv_change" {
   triggers = {
-    budget_name = aws_budgets_budget.budget_notification.name
+    budget_name = aws_budgets_budget.budget_notification[each.key]
   }
 
   provisioner "local-exec" {
