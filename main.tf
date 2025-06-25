@@ -1036,7 +1036,7 @@ resource "null_resource" "trigger_ssm_on_threshold" {
 
   provisioner "local-exec" {
     when        = create
-    interpreter = ["bash", "-c"] # For Windows WSL or Git Bash use ["cmd.exe", "/C"] or ["PowerShell", "-Command"]
+    interpreter = ["cmd.exe", "/C"] # For Windows WSL or Git Bash use ["cmd.exe", "/C"] or ["PowerShell", "-Command"]
     command     = <<EOT
 echo "Triggering SSM for ${each.value.BudgetName} (Actual: ${each.value.ActualSpend}, Threshold: ${each.value.Alert1Threshold})"
 aws ssm start-automation-execution \
