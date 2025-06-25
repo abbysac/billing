@@ -999,7 +999,7 @@ variable "csvfld" {
     AccountId       = string
     BudgetName      = string
     Alert1Threshold = number
-    ActualSpend     = number # You must include actual spend for comparison
+    ActualSpend     = number
   }))
 
   default = [
@@ -1036,20 +1036,18 @@ resource "null_resource" "trigger_ssm_on_threshold" {
 
   provisioner "local-exec" {
     when        = create
-    interpreter = ["/bin/bash", "-c"]
+    interpreter = ["bash", "-c"] # For Windows WSL or Git Bash use ["cmd.exe", "/C"] or ["PowerShell", "-Command"]
     command     = <<EOT
 echo "Triggering SSM for ${each.value.BudgetName} (Actual: ${each.value.ActualSpend}, Threshold: ${each.value.Alert1Threshold})"
 aws ssm start-automation-execution \
   --document-name "budget_update_gha_alert" \
   --region "us-east-1" \
-  
+  --parameters '{
+    "TargetAccountId": ["${each.value.AccountId}"],
+    "BudgetName": ["${each.value.BudgetName}"],
+    "SnsTopicArn": ["arn:aws:sns:us-east-1:224761220970:budget-updates-topic"],
+    "Message": ["Budget threshold exceeded: ${each.value.ActualSpend} >= ${each.value.Alert1Threshold}"]
   }'
-else
-  echo "Threshold not reached, skipping SSM execution"
-fi
 EOT
-    # EOT
   }
-
-  # depends_on = [aws_ssm_document.invoke_central_lambda]
 }
