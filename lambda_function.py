@@ -2,9 +2,12 @@ import json
 import boto3
 import decimal
 import logging
-import time
-from botocore.exceptions import ClientError
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
+
+# SES client
 ses = boto3.client('ses', region_name='us-east-1')
 
 SENDER_EMAIL = "abbysac@gmail.com"  # SES-verified email
@@ -15,66 +18,46 @@ class DecimalEncoder(json.JSONEncoder):
         if isinstance(obj, decimal.Decimal):
             return float(obj)
         return super().default(obj)
-    
-
-    
-
 
 def lambda_handler(event, context):
-    print("Received Event:", json.dumps(event, indent=2))
+    logger.info(f"Received Event: {json.dumps(event, indent=2)}")
 
-    # Extract SNS message
-    if "Records" in event and isinstance(event["Records"], list):
-        try:
+    # Extract message
+    try:
+        if "Records" in event and isinstance(event["Records"], list) and len(event["Records"]) > 0:
             sns_message = event["Records"][0]["Sns"]["Message"]
-            message = json.loads(sns_message)
-        except (KeyError, IndexError, json.JSONDecodeError) as e:
-            print(f"Error parsing SNS message: {str(e)}")
-            return {"statusCode": 400, "body": "Invalid SNS event format"}
-    else:
-        print("Direct Budget event received, using raw event.")
-        message = event
+            message = json.loads(sns_message) if isinstance(sns_message, str) else sns_message
+            logger.info(f"Parsed SNS Message: {json.dumps(message, indent=2)}")
+        else:
+            logger.info("Direct event received, using raw event.")
+            message = event
+    except (KeyError, IndexError, json.JSONDecodeError) as e:
+        logger.error(f"Error parsing event: {str(e)}")
+        return {"statusCode": 400, "body": f"Invalid event format: {str(e)}"}
 
     # Extract budget details
-    budget_name = message.get("budgetName", "billing-alert")
-    alert_type = message.get("alertType", "ACTUAL")
-
-    # Now continue using `message` safely
-    # try:
-    #     account_id = message.get("account_id")
-    #     ...
-    # print("Received Event:", json.dumps(event, indent=2))
-
     try:
-        sns_record = event['Records'][0]['Sns']
-        sns_message_str = sns_record['Message']
-        message = json.loads(sns_message_str)
-        logging.info(f"Processed SNS Message: {message}")
-    except Exception as e:
-        print(f"Failed to parse SNS message: {e}")
-        return {"statusCode": 400, "body": "Invalid SNS message format"}
-
-    try:
-        account_id = message.get("account_id")
-        budget_name = message.get("budgetName")
-        actual_spend = float(message.get("actual_spend", 0.0))
-        budget_limit = float(message.get("budget_limit", 1.0))
-        percentage_used = float(message.get("percentage_used", 0.0))
-        alert_trigger = message.get("alert_trigger", "ACTUAL")
+        account_id = message.get("account_id", "Unknown")
+        budget_name = message.get("budgetName", "billing-alert")
+        actual_spend = float(message.get("actual_spend", message.get("actualAmount", 0.0)))
+        budget_limit = float(message.get("budget_limit", message.get("budgetLimit", 1.0)))
+        percentage_used = float(message.get("percentage_used", (actual_spend / budget_limit * 100 if budget_limit else 0)))
+        alert_trigger = message.get("alert_trigger", message.get("alertType", "ACTUAL"))
         environment = message.get("environment", "stage")
-        threshold = float(message.get("threshold_percent", 80.0))
+        threshold = float(message.get("threshold_percent", message.get("AlertThreshold", 80.0)))
 
-        if not all([account_id, budget_name, actual_spend is not None, budget_limit is not None, percentage_used is not None]):
+        if not all([account_id, budget_name]):
             error_msg = f"Missing required fields: {message}"
-            print(error_msg)
+            logger.error(error_msg)
             return {"statusCode": 400, "body": error_msg}
 
-        print(f"[INFO] {account_id} - {budget_name} used {percentage_used:.2f}% of budget, threshold: {threshold}%")
+        logger.info(f"{account_id} - {budget_name} used {percentage_used:.2f}% of budget, threshold: {threshold}%")
 
         if percentage_used < threshold:
-            print(f"[INFO] {budget_name} usage ({percentage_used:.2f}%) below threshold ({threshold}%) - no email sent")
+            logger.info(f"{budget_name} usage ({percentage_used:.2f}%) below threshold ({threshold}%) - no email sent")
             return {"statusCode": 200, "body": "Threshold not exceeded"}
 
+        # Send email
         subject = f"AWS Budget Alert: {budget_name}"
         email_body = f"""
 {account_id} {budget_name}
@@ -97,26 +80,22 @@ Full Message:
 {json.dumps(message, indent=2, cls=DecimalEncoder)}
 """
 
-        try:
-            response = ses.send_email(
-                Source=SENDER_EMAIL,
-                Destination={'ToAddresses': [RECIPIENT_EMAIL]},
-                Message={
-                    'Subject': {'Data': subject},
-                    'Body': {
-                        'Text': {
-                            'Data': email_body,
-                            'Charset': 'UTF-8'
-                        }
+        response = ses.send_email(
+            Source=SENDER_EMAIL,
+            Destination={'ToAddresses': [RECIPIENT_EMAIL]},
+            Message={
+                'Subject': {'Data': subject},
+                'Body': {
+                    'Text': {
+                        'Data': email_body,
+                        'Charset': 'UTF-8'
                     }
                 }
-            )
-            print(f"Email sent! Message ID: {response['MessageId']}")
-            return {"statusCode": 200, "body": "Email sent successfully"}
-        except Exception as e:
-            print(f"Failed to send email: {str(e)}")
-            return {"statusCode": 500, "body": f"Failed to send email: {str(e)}"}
+            }
+        )
+        logger.info(f"Email sent! Message ID: {response['MessageId']}")
+        return {"statusCode": 200, "body": "Email sent successfully"}
 
     except Exception as e:
-        print(f"Error in main handler logic: {e}")
-        return {"statusCode": 400, "body": "Unexpected processing error"}           
+        logger.error(f"Error in main handler logic: {str(e)}")
+        return {"statusCode": 500, "body": f"Unexpected processing error: {str(e)}"}
