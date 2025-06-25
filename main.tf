@@ -3,14 +3,15 @@ locals {
   accounts = {
     for row in local.csvfld :
     "${row.AccountId}_${row.BudgetName}" => {
-      account_id        = row.AccountId
-      budget_name       = row.BudgetName
-      budget_amount     = row.BudgetAmount
-      alert_threshold   = row.Alert1Threshold
-      alert_trigger     = row.Alert1Trigger
-      sns_topic_arn     = row.SNSTopicArn
-      linked_accounts   = contains(keys(row), "linked_accounts") ? jsondecode(row.linked_accounts) : []
-      threshold_reached = var.current_value >= var.alert_threshold ? "trigger" : "no_trigger"
+      account_id      = row.AccountId
+      budget_name     = row.BudgetName
+      budget_amount   = row.BudgetAmount
+      alert_threshold = row.Alert1Threshold
+      alert_trigger   = row.Alert1Trigger
+      sns_topic_arn   = row.SNSTopicArn
+      linked_accounts = contains(keys(row), "linked_accounts") ? jsondecode(row.linked_accounts) : []
+      # threshold_reached = try(locals.budget_amount >= var.alert_threshold, false) ? "trigger" : "no_trigger"
+
     }
   }
   csv_hash = filemd5("./csvdata.csv")
@@ -311,7 +312,8 @@ resource "aws_iam_policy" "policy" {
           "organizations:DescribeOrganization",
           "ses:SendEmail",
           "Organizations:ListRoots",
-          "iam:PutRolePolicy"
+          "iam:PutRolePolicy",
+          "ssm:StartAutomationExecution"
 
 
         ],
@@ -675,10 +677,10 @@ resource "aws_ssm_document" "invoke_central_lambda" {
         type    = "String"
         default = "752338767189"
       }
-      alertThreshold = {
-        type    = "String"
-        default = tostring(var.alert_threshold)
-      }
+      # alertThreshold = {
+      #   type    = "String"
+      #   default = tostring(var.alert_threshold)
+      # }
       alertTrigger = {
         type    = "String"
         default = "ACTUAL"
@@ -918,7 +920,7 @@ EOF
 # }
 
 # variable "current_value" {
-#   type    = String
+#   type    = string
 #   default = local.budget_amount
 # }
 
@@ -930,19 +932,20 @@ EOF
 
 
 # locals {
-#   threshold_reached = try(tonumber(var.current_value) >= tonumber(var.alert_threshold), false) ? "trigger" : "no_trigger"
+#   # budget_amount      = 120  # <- or dynamically passed in from elsewhere
+#   threshold_reached = try(local.budget_amount >= var.alert_threshold, false) ? "trigger" : "no_trigger"
 # }
 
 # output "threshold_debug" {
 #   value = {
-#     current_value     = var.current_value
+#     current_value     = locals.budget_amount
 #     alert_threshold   = var.alert_threshold
-#     threshold_reached = local.threshold_reached
+#     threshold_reached = locals.threshold_reached
 #   }
 # }
 
 # resource "null_resource" "trigger_ssm_on_threshold" {
-#   count = local.threshold_reached == "trigger" ? 1 : 0
+#   count = locals.threshold_reached == "trigger" ? 1 : 0
 
 #   triggers = {
 #     threshold_status = local.threshold_reached
@@ -951,65 +954,99 @@ EOF
 #   provisioner "local-exec" {
 #     when    = create
 #     command = <<EOT
-#     echo Debug: Current value is ${var.current_value}, Alert threshold is ${var.alert_threshold}, Threshold reached is ${local.threshold_reached}
-#     aws ssm start-automation-execution --document-name "budget_update_gha_alert" --region "${var.aws_region}" || echo SSM execution failed: %ERRORLEVEL%
-#   EOT
+# echo Debug: Current value is ${local.budget_amount}, Alert threshold is ${var.alert_threshold}, Threshold reached is ${local.threshold_reached}
+# aws ssm start-automation-execution --document-name "budget_update_gha_alert" --region "us-east-1" || echo "SSM execution failed"
+# EOT
 #   }
 
 #   depends_on = [aws_ssm_document.invoke_central_lambda]
 # }
 
-variable "current_value" {
-  description = "The current budget usage percent"
-  type        = number
-}
+# variable "current_value" {
+#   description = "The current budget usage percent"
+#   type        = number
+#   default     = "ACTUAL"
+# }
 
-variable "alert_threshold" {
-  description = "The threshold percent to trigger the alert"
-  type        = number
-}
+# variable "alert_threshold" {
+#   description = "The threshold percent to trigger the alert"
+#   type        = number
+#   default     = [for item in local.csvfld : item.Alert1Threshold]
+# }
 
-variable "aws_region" {
-  default = "us-east-1"
-}
+# variable "aws_region" {
+#   default = "us-east-1"
+# }
 
-variable "target_account_id" {
-  default = "224761220970"
-}
+# variable "target_account_id" {
+#   default = "224761220970"
+# }
 
-variable "sns_topic_arn" {
-  default = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
-}
+# variable "sns_topic_arn" {
+#   default = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
+# }
 
-variable "budget_name" {
-  default = "ABC Operations DEV Account Overall Budget"
-}
+# variable "budget_name" {
+#   default = "ABC Operations DEV Account Overall Budget"
+# }
 
-variable "message" {
-  default = "This is to notify you that you have exceeded your budget threshold"
+# variable "message" {
+#   default = "This is to notify you that you have exceeded your budget threshold"
+# }
+variable "csvfld" {
+  type = list(object({
+    AccountId       = string
+    BudgetName      = string
+    Alert1Threshold = number
+    ActualSpend     = number # You must include actual spend for comparison
+  }))
+
+  default = [
+    {
+      AccountId       = "224761220970"
+      BudgetName      = "ABC Operations DEV Account Overall Budget"
+      Alert1Threshold = 80
+      ActualSpend     = 100
+    },
+    {
+      AccountId       = "752338767189"
+      BudgetName      = "ABC Operations PROD Account Overall Budget"
+      Alert1Threshold = 100
+      ActualSpend     = 99.9
+    }
+  ]
 }
 
 locals {
-  threshold_reached = var.current_value >= var.alert_threshold ? "trigger" : "no_trigger"
+  filtered_alerts = [
+    for item in var.csvfld : item if item.ActualSpend >= item.Alert1Threshold
+  ]
 }
 
 resource "null_resource" "trigger_ssm_on_threshold" {
+  for_each = { for idx, item in local.filtered_alerts : idx => item }
+
   triggers = {
-    threshold_status = local.threshold_reached
+    budget_name  = each.value.BudgetName
+    account_id   = each.value.AccountId
+    threshold    = tostring(each.value.Alert1Threshold)
+    actual_value = tostring(each.value.ActualSpend)
   }
 
   provisioner "local-exec" {
-    when    = create
+    when = create
+
     command = <<EOT
-if [ "${local.threshold_reached}" == "trigger" ]; then
-  echo "Threshold exceeded, triggering SSM..."
-  aws ssm start-automation-execution \
-    --document-name "budget_update_gha_alert" \
-    --region "${var.aws_region}" \
-    --parameters '{"TargetAccountId":["${var.target_account_id}"],"BudgetName":["${var.budget_name}"],"SnsTopicArn":["${var.sns_topic_arn}"],"Message":["${var.message}"]}'
-else
-  echo "Threshold not reached, skipping SSM execution"
-fi
+echo "Triggering SSM for ${each.value.BudgetName} (Actual: ${each.value.ActualSpend}, Threshold: ${each.value.Alert1Threshold})"
+aws ssm start-automation-execution \
+  --document-name "budget_update_gha_alert" \
+  --region "us-east-1" \
+  --parameters '{
+    "TargetAccountId": ["${each.value.AccountId}"],
+    "BudgetName": ["${each.value.BudgetName}"],
+    "SnsTopicArn": ["arn:aws:sns:us-east-1:${each.value.AccountId}:budget-updates-topic"],
+    "Message": ["Budget threshold exceeded: ${each.value.ActualSpend} >= ${each.value.Alert1Threshold}"]
+  }'
 EOT
   }
 
