@@ -10,10 +10,13 @@ locals {
       alert_trigger   = row.Alert1Trigger
       sns_topic_arn   = row.SNSTopicArn
       linked_accounts = contains(keys(row), "linked_accounts") ? jsondecode(row.linked_accounts) : []
-      # threshold_reached = try(locals.budget_amount >= var.alert_threshold, false) ? "trigger" : "no_trigger"
 
     }
+
   }
+
+
+
   csv_hash = filemd5("./csvdata.csv")
 }
 
@@ -995,18 +998,113 @@ EOF
 #   default = "This is to notify you that you have exceeded your budget threshold"
 # }
 # 
+
+# variable "csvfld" {
+#   type = list(object({
+#     AccountId       = string
+#     BudgetName      = string
+#     Alert1Threshold = number
+#     ActualSpend     = number
+#   }))
+
+#   default = [
+#     {
+#       AccountId       = "224761220970"
+#       BudgetName      = "ABC Operations DEV Account Overall Budget"
+#       Alert1Threshold = 80
+#       ActualSpend     = 100
+#     },
+#     {
+#       AccountId       = "752338767189"
+#       BudgetName      = "ABC Operations PROD Account Overall Budget"
+#       Alert1Threshold = 100
+#       ActualSpend     = 99.9
+#     }
+#   ]
+# }
+
+
+# resource "null_resource" "trigger_ssm_on_csv_change" {
+#   for_each = var.csvfld
+
+#   triggers = {
+#     budget_name = each.value.BudgetName
+#   }
+
+#   provisioner "local-exec" {
+#     command = "echo Triggering SSM for ${each.value.BudgetName}"
+#   }
+# }
+
+
+
+variable "aws_region" {
+  type    = string
+  default = "us-east-1"
+}
+
+# # Read CSV file
+# data "local_file" "csvdata" {
+#   filename = "csvdata.csv"
+# }
+
+# # Fetch alert_threshold from SSM Parameter Store
+# data "aws_ssm_parameter" "alert_threshold" {
+#   name = "/budget/alert_threshold"
+# }
+
+
+
+
+# # Debug output
+# output "threshold_debug" {
+#   value = {
+#     current_value     = locals.current_value
+#     alert_threshold   = locals.alert_threshold
+#     threshold_reached = locals.threshold_reached
+#   }
+# }
+
+
+
+# # Null resource to trigger SSM
+# resource "null_resource" "trigger_ssm_on_csv_change" {
+#   count = locals.threshold_reached == "trigger" ? 1 : 0
+
+#   triggers = {
+#     csv_hash         = local.csv_hash
+#     threshold_status = local.threshold_reached
+#   }
+
+#   provisioner "local-exec" {
+#     command = <<EOT
+#       echo Debug: Current value is ${local.current_value}, Alert threshold is ${local.alert_threshold}, Threshold reached is ${local.threshold_reached}
+#       aws ssm start-automation-execution --document-name "budget_update_gha_alert" --region "${var.aws_region}" --parameters "{\"AlertThreshold\":\"${local.alert_threshold}\"}" || echo SSM execution failed: %ERRORLEVEL%
+#     EOT
+#   }
+
+#   depends_on = [aws_ssm_document.invoke_central_lambda]
+# }
+
+# Null resource for each account
 resource "null_resource" "trigger_ssm_on_csv_change" {
+  for_each = {
+    for key, account in local.accounts :
+    key => account
+    if account.budget_amount >= account.alert_threshold && account.alert_trigger == "Enabled"
+  }
+
   triggers = {
-    budget_name = aws_budgets_budget.budget_notification[each.key]
+    csv_hash         = local.csv_hash
+    threshold_status = "${each.value.budget_amount}_${each.value.alert_threshold}"
   }
 
   provisioner "local-exec" {
-    command = <<-EOT
-      aws ssm start-automation-execution \
-        --document-name "budget_update_gha_alert" \
-        --region us-east-1
+    command = <<EOT
+      echo Debug: AccountId=${each.value.account_id}, BudgetName=${each.value.budget_name}, BudgetAmount=${each.value.budget_amount}, AlertThreshold=${each.value.alert_threshold}
+      aws ssm start-automation-execution --document-name "budget_update_gha_alert" --region "${var.aws_region}" --parameters "{\"AccountId\":\"${each.value.account_id}\",\"BudgetName\":\"${each.value.budget_name}\",\"BudgetAmount\":\"${each.value.budget_amount}\",\"AlertThreshold\":\"${each.value.alert_threshold}\"}" || echo SSM execution failed: %ERRORLEVEL%
     EOT
   }
 
-  depends_on = [aws_ssm_document.invoke_central_lambda] #"arn:aws:sns:us-east-1:224761220970:budget-updates-topic"]
+  depends_on = [aws_ssm_document.invoke_central_lambda]
 }
