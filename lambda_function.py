@@ -29,7 +29,17 @@ def lambda_handler(event, context):
             if not sns_message:
                 logger.error("SNS message is empty")
                 return {"statusCode": 400, "body": "Empty SNS message"}
-            message = json.loads(sns_message) if isinstance(sns_message, str) else sns_message
+            if isinstance(sns_message, str) and sns_message.strip():
+                try:
+                    message = json.loads(sns_message)
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to decode JSON from SNS message: {str(e)}")
+                    return {"statusCode": 400, "body": "Invalid SNS JSON format"}
+            else:
+                logger.error("SNS message is empty or not a string")
+                return {"statusCode": 400, "body": "Empty or malformed SNS message"}
+
+            #message = json.loads(sns_message) if isinstance(sns_message, str) else sns_message
             logger.info(f"Parsed SNS Message: {json.dumps(message, indent=2)}")
         else:
             logger.info("Direct event received (e.g., from SSM), using raw event.")
