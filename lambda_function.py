@@ -40,7 +40,9 @@ def lambda_handler(event, context):
                 return {"statusCode": 400, "body": "Empty or malformed SNS message"}
 
             #message = json.loads(sns_message) if isinstance(sns_message, str) else sns_message
-            logger.info(f"Parsed SNS Message: {json.dumps(message, indent=2)}")
+            #logger.info(f"Parsed SNS Message: {json.dumps(message, indent=2)}")
+            logger.info(f"Raw SNS message: '{sns_message}'")
+
         else:
             logger.info("Direct event received (e.g., from SSM), using raw event.")
             message = event
@@ -50,15 +52,14 @@ def lambda_handler(event, context):
 
     # Extract budget details
     try:
-        account_id = message.get("account_id", message.get("TargetAccountId", "Unknown"))
-        budget_name = message.get("budgetName", message.get("BudgetName", "billing-alert"))
-        actual_spend = float(message.get("actual_spend", message.get("ActualSpend", message.get("actualAmount", 0.0))))
-        budget_limit = float(message.get("budget_limit", message.get("BudgetLimit", message.get("budgetLimit", 1.0))))
-        percentage_used = float(message.get("percentage_used", (actual_spend / budget_limit * 100 if budget_limit else 0)))
-        alert_trigger = message.get("alert_trigger", message.get("AlertTrigger", message.get("alertType", "ACTUAL")))
+        account_id = message.get("account_id")
+        budget_name = message.get("budgetName")
+        actual_spend = float(message.get("actualAmount", 0.0))
+        budget_limit = float(message.get("budgetLimit", 1.0))
+        percentage_used = float(message.get("percentage_used", 0.0))        
+        alert_trigger = message.get("alert_trigger", "ACTUAL")
         environment = message.get("environment", "stage")
-        threshold = float(message.get("threshold_percent", message.get("AlertThreshold", 80.0)))
-
+        threshold = float(message.get("threshold_percent", 80.0))
         if not all([account_id, budget_name]):
             error_msg = f"Missing required fields: {message}"
             logger.error(error_msg)
