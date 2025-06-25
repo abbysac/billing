@@ -22,18 +22,17 @@ class DecimalEncoder(json.JSONEncoder):
 def lambda_handler(event, context):
     logger.info(f"Received Event: {json.dumps(event, indent=2)}")
 
-    # Extract message
-    try:
-        if "Records" in event and isinstance(event["Records"], list) and len(event["Records"]) > 0:
+     # Extract SNS message
+    if "Records" in event and isinstance(event["Records"], list):
+        try:
             sns_message = event["Records"][0]["Sns"]["Message"]
-            message = json.loads(sns_message) if isinstance(sns_message, str) else sns_message
-            logger.info(f"Parsed SNS Message: {json.dumps(message, indent=2)}")
-        else:
-            logger.info("Direct event received, using raw event.")
-            message = event
-    except (KeyError, IndexError, json.JSONDecodeError) as e:
-        logger.error(f"Error parsing event: {str(e)}")
-        return {"statusCode": 400, "body": f"Invalid event format: {str(e)}"}
+            message = json.loads(sns_message)
+        except (KeyError, IndexError, json.JSONDecodeError) as e:
+            print(f"Error parsing SNS message: {str(e)}")
+            return {"statusCode": 400, "body": "Invalid SNS event format"}
+    else:
+        print("Direct Budget event received, using raw event.")
+        message = event
 
     # Extract budget details
     try:
