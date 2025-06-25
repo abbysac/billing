@@ -1035,9 +1035,9 @@ resource "null_resource" "trigger_ssm_on_threshold" {
   }
 
   provisioner "local-exec" {
-    when = create
-
-    command = <<EOT
+    when        = create
+    interpreter = ["cmd.exe", "/C"]
+    command     = <<EOT
 echo "Triggering SSM for ${each.value.BudgetName} (Actual: ${each.value.ActualSpend}, Threshold: ${each.value.Alert1Threshold})"
 aws ssm start-automation-execution \
   --document-name "budget_update_gha_alert" \
