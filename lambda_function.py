@@ -74,27 +74,27 @@ Full Message:
 {json.dumps(message, indent=2, cls=DecimalEncoder)}
 """
 
-    try:
-        response = ses.send_email(
-            Source=SENDER_EMAIL,
-            Destination={'ToAddresses': [RECIPIENT_EMAIL]},
-            Message={
-                'Subject': {'Data': subject},
-                'Body': {
-                     'Text': {
-                         'Data': email_body,
-                            'Charset': 'UTF-8'
- }
- }
- }
- )
-        print(f"Email sent! Message ID: {response['MessageId']}")
-    except Exception as e:
-        print(f"Failed to send email: {str(e)}")
-        return {"statusCode": 500, "body": "Failed to send email"}
+        try:
+            response = ses.send_email(
+                Source=SENDER_EMAIL,
+                Destination={'ToAddresses': [RECIPIENT_EMAIL]},
+                Message={
+                    'Subject': {'Data': subject},
+                    'Body': {
+                        'Text': {
+                            'Data': email_body,
+                                'Charset': 'UTF-8'
+    }
+    }
+    }
+    )
+            print(f"Email sent! Message ID: {response['MessageId']}")
+        except Exception as e:
+            print(f"Failed to send email: {str(e)}")
+            return {"statusCode": 500, "body": "Failed to send email"}
 
-        return {"statusCode": 200, "body": "Email sent successfully"}
+            return {"statusCode": 200, "body": "Email sent successfully"}
 
     except Exception as e:
-        print(f"Error in main handler logic: {e}")
-        return {"statusCode": 400, "body": "Unexpected processing error"}
+            print(f"Error in main handler logic: {e}")
+            return {"statusCode": 400, "body": "Unexpected processing error"}
