@@ -820,7 +820,7 @@ def handler(event, context):
                                     "alert_trigger": alert_trigger,
                                     "environment": "stage",
                                     "message":  message, #json.dumps(payload)
-                                    # "Subject": 'Budget Alert',
+                                    # "Subject": 'Billing Alert',
                                     "threshold_percent": threshold_percent
                                 })
                             )
