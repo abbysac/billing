@@ -786,25 +786,26 @@ def handler(event, context):
                 if alert_triggered:
                     
                     print(f"Threshold exceeded for {budget_names} ({percentage_used:.2f}%) - publishing to SNS")
-          
-                payload = {
-                  "account_id": account_id,
-                  "budgetName": budget_name,
-                  "actual_spend": actual_spend,
-                  "budgetLimit": budget_limit,
-                  "threshold": threshold_percent,
-                  "environment": "stage",
-                  "message": message,
-                  "alert_trigger": alert_trigger
-              }
+                    
+                    try:
+                        payload = {
+                          "account_id": account_id,
+                          "budgetName": budget_name,
+                          "actual_spend": actual_spend,
+                          "budgetLimit": budget_limit,
+                          "threshold": threshold_percent,
+                          "environment": "stage",
+                          "message": message,
+                          "alert_trigger": alert_trigger
+                      }
 
-                print("Publishing SNS payload:")
-                print(json.dumps(payload, indent=2))
+                        print("Publishing SNS payload:")
+                        print(json.dumps(payload, indent=2))
 
-                sns_response = sns.publish(
-                  TopicArn=sns_topic_arn,
-                  Message=json.dumps(payload)
-                )
+                        sns_response = sns.publish(
+                          TopicArn=sns_topic_arn,
+                          Message=json.dumps(payload)
+                        )
 
 
                     # try:
