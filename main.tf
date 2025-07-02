@@ -796,7 +796,7 @@ def handler(event, context):
                           "threshold": threshold_percent,
                           "environment": "stage",
                           "message": message,
-                          "alert_trigger": alert_trigger
+                          # "alert_trigger": alert_trigger
                       }
 
                         print("Publishing SNS payload:")
