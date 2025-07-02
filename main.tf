@@ -798,13 +798,13 @@ def handler(event, context):
                   "alert_trigger": alert_trigger
               }
 
-              print("Publishing SNS payload:")
-              print(json.dumps(payload, indent=2))
+                print("Publishing SNS payload:")
+                print(json.dumps(payload, indent=2))
 
-              sns_response = sns.publish(
+                sns_response = sns.publish(
                   TopicArn=sns_topic_arn,
                   Message=json.dumps(payload)
-              )
+                )
 
 
                     # try:
