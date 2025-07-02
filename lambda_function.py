@@ -58,8 +58,19 @@ def lambda_handler(event, context):
         account_id = message.get("account_id")
         budget_name = message.get("budgetName")
         threshold = float(message.get("threshold", 80.0))
-        actual_spend = float(message.get("actual_spend")) #, 0.0))
-        budget_limit = float(message.get("budgetLimit"))
+        
+        actual_spend_raw = message.get("actual_spend")
+        budget_limit_raw = message.get("budgetLimit")
+        if actual_spend_raw is None or budget_limit_raw is None:
+            print("Missing required numeric fields in message:", json.dumps(message, indent=2))
+            return {"statusCode": 400, "body": "Missing budget numbers"}
+
+        actual_spend = float(actual_spend_raw)
+        budget_limit = float(budget_limit_raw)
+          
+            
+        # actual_spend = float(message.get("actual_spend")) #, 0.0))
+        # budget_limit = float(message.get("budgetLimit"))
         environment = message.get("environment", "dev")
 
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
