@@ -14,33 +14,33 @@ class DecimalEncoder(json.JSONEncoder):
            return float(obj)
         return super().default(obj)
 
-def lambda_handler(event):   #context):
-#     print("Received Event:", json.dumps(event, indent=2))
-# def process_sns_message(event):    
-    # The SNS message is likely contained within the 'event' structure
-    # Parse the SNS message payload
-    message = json.loads(event['Records'][0]['Sns']['Message'])  #
+def lambda_handler(event, context):
+    print("Received Event:", json.dumps(event, indent=2))
+# # def process_sns_message(event):    
+#     # The SNS message is likely contained within the 'event' structure
+#     # Parse the SNS message payload
+#     message = json.loads(event['Records'][0]['Sns']['Message'])  #
 
-    # Access fields within the message
-    subject = message.get('Subject', 'No Subject')
-    body = message.get('Message', 'No message body')
+#     # Access fields within the message
+#     subject = message.get('Subject', 'No Subject')
+#     body = message.get('Message', 'No message body')
 
-    print(f"Subject: {subject}")
-    print(f"Body: {body}")
+#     print(f"Subject: {subject}")
+#     print(f"Body: {body}")
 
-    # Example usage (assuming 'event' is the input to your script from SSM)
-    # (Replace this with the actual way your SSM script receives the SNS message)
-    event_data = {
-        'Records': [
-            {
-                'Sns': {
-                    'Message': '{"Subject": "Important Notification", "Message": "This is the message content."}'
-                }
-            }
-        ]
-    }
+#     # Example usage (assuming 'event' is the input to your script from SSM)
+#     # (Replace this with the actual way your SSM script receives the SNS message)
+#     event_data = {
+#         'Records': [
+#             {
+#                 'Sns': {
+#                     'Message': '{"Subject": "Important Notification", "Message": "This is the message content."}'
+#                 }
+#             }
+#         ]
+#     }
 
-    process_sns_message(event_data)
+#     process_sns_message(event_data)
     
     
     # sns_message = event["Records"][0]["Sns"]["Message"]
@@ -57,28 +57,28 @@ def lambda_handler(event):   #context):
     #     return {"statusCode": 400, "body": f"Malformed SNS message: {str(e)}"}
 
     
-    #   # Extract SNS message
-    # if "Records" in event and isinstance(event["Records"], list) and event["Records"]:
-    #     try:
-    #         sns_message = event["Records"][0]["Sns"]["Message"]
-    #         print(f"Raw SNS Message: {sns_message}")
-    #         # Check if sns_message is a string and not empty
-    #         if not isinstance(sns_message, str) or not sns_message.strip():
-    #             print("Error: SNS message is empty or not a string")
-    #             return {"statusCode": 400, "body": "Invalid SNS message format"}
-    #         # Attempt to parse JSON
-    #         try:
-    #             message = json.loads(sns_message)
-    #         except json.JSONDecodeError as e:
-    #             print(f"Error parsing SNS message as JSON: {str(e)}")
-    #             # Handle non-JSON message if expected
-    #             message = {"raw_message": sns_message}  # Fallback to raw message
-    #     except (KeyError, IndexError) as e:
-    #         print(f"Error accessing SNS message: {str(e)}")
-    #         return {"statusCode": 400, "body": "Invalid SNS event format"}
-    # else:
-    #     print("Direct Budget event received, using raw event.")
-    #     message = event
+      # Extract SNS message
+    if "Records" in event and isinstance(event["Records"], list) and event["Records"]:
+        try:
+            sns_message = event["Records"][0]["Sns"]["Message"]
+            print(f"Raw SNS Message: {sns_message}")
+            # Check if sns_message is a string and not empty
+            if not isinstance(sns_message, str) or not sns_message.strip():
+                print("Error: SNS message is empty or not a string")
+                return {"statusCode": 400, "body": "Invalid SNS message format"}
+            # Attempt to parse JSON
+            try:
+                message = json.loads(sns_message)
+            except json.JSONDecodeError as e:
+                print(f"Error parsing SNS message as JSON: {str(e)}")
+                # Handle non-JSON message if expected
+                message = {"raw_message": sns_message}  # Fallback to raw message
+        except (KeyError, IndexError) as e:
+            print(f"Error accessing SNS message: {str(e)}")
+            return {"statusCode": 400, "body": "Invalid SNS event format"}
+    else:
+        print("Direct Budget event received, using raw event.")
+        message = event
    
 
 #     try:
