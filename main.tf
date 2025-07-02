@@ -798,8 +798,8 @@ def handler(event, context):
                                     "percentage_used": percentage_used,
                                     "alert_trigger": alert_trigger,
                                     "environment": "stage",
-                                    "message": json.dumps(payload),    # message
-                                    "Subject": 'Budget Alert',
+                                    "message":  messag, 
+                                   
                                     "threshold_percent": threshold_percent
                                 })
                             )
