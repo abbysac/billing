@@ -770,7 +770,7 @@ def handler(event, context):
 
                 print(f"Budget: {budget_name}, Limit: $${budget_limit:.2f}, Spend: $${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
 
-                threshold_percent = 100.0
+                threshold_percent = 80.0
                 alert_trigger = "ACTUAL"
                 for row in csv_data:
                     if row["BudgetName"] == budget_name and row["AccountId"] == account_id:
@@ -798,7 +798,8 @@ def handler(event, context):
                                     "percentage_used": percentage_used,
                                     "alert_trigger": alert_trigger,
                                     "environment": "stage",
-                                    "message": message,
+                                    "message": json.dumps(payload),    # message
+                                     Subject='Budget Alert'
                                     "threshold_percent": threshold_percent
                                 })
                             )
