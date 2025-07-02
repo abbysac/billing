@@ -338,6 +338,7 @@ resource "aws_iam_policy" "policy" {
           "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole",
           "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
           "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
+          "arn:aws:budgets::224761220970:budget/ABC Operations QA Account Overall Budget",
           "arn:aws:lambda:us-east-1:224761220970:function:budget_update_gha_alert",
           "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com"
 
@@ -482,7 +483,7 @@ resource "aws_budgets_budget" "budget_notification" {
   time_unit    = "MONTHLY"
 
   dynamic "cost_filter" {
-    for_each = contains(keys(each.value), "linked_accounts") && length(each.value.linked_accounts) > 0 ? [1] : []
+    for_each = contains(keys(each.value), "linked_accounts") && length(each.value.linked_accounts) > 0 ? [2] : []
     content {
       name   = "LinkedAccount"
       values = each.value.linked_accounts
@@ -545,6 +546,7 @@ resource "aws_iam_role_policy" "ssm_automation_policy" {
 
           "arn:aws:budgets::224761220970:budget/ABC Operations DEV Account Overall Budget",
           "arn:aws:budgets::224761220970:budget/ABC Operations PROD Account Overall Budget",
+          "arn:aws:budgets::224761220970:budget/ABC Operations QA Account Overall Budget",
           "arn:aws:sns:us-east-1:224761220970:budget-updates-topic",
           "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole"
         ]
