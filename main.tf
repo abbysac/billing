@@ -795,11 +795,11 @@ def handler(event, context):
                                     "budgetName": budget_name,
                                     "actual_spend": actual_spend,
                                     "budget_limit": budget_limit,
-                                    "percentage_used": percentage_used,
+                                    # "percentage_used": percentage_used,
                                     "alert_trigger": alert_trigger,
                                     "environment": "stage",
                                     "message":  message, #json.dumps(payload)
-                                    "Subject": 'Budget Alert',
+                                    # "Subject": 'Budget Alert',
                                     "threshold_percent": threshold_percent
                                 })
                             )
@@ -822,7 +822,7 @@ def handler(event, context):
                     "budget_name": budget_name,
                     "budget_limit": budget_limit,
                     "actual_spend": actual_spend,
-                    "percent_used": percentage_used,
+                     "percent_used": percentage_used,
                     "alert_triggered": alert_triggered,
                     "threshold_percent": threshold_percent,
                     "alert_trigger": alert_trigger
