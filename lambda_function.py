@@ -49,7 +49,7 @@ def lambda_handler(event, context):
         threshold = float(message.get("threshold", 80.0))
         actual_spend = float(message.get("amount", 0.0))
         budget_limit = float(message.get("budgetLimit", 1.0))
-        environment = message.get("environment", "prod")
+        environment = message.get("environment", "dev")
 
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
 
