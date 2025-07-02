@@ -639,84 +639,84 @@ resource "aws_iam_role_policy_attachment" "attach_github_actions_policy" {
 }
 
 
-resource "aws_ssm_document" "invoke_central_lambda" {
-  name          = "budget_update_gha_alert"
-  document_type = "Automation"
-  content = jsonencode({
-    schemaVersion = "0.3"
-    description   = "Assume role in target account and invoke central Lambda"
+# resource "aws_ssm_document" "invoke_central_lambda" {
+#   name          = "budget_update_gha_alert"
+#   document_type = "Automation"
+#   content = jsonencode({
+#     schemaVersion = "0.3"
+#     description   = "Assume role in target account and invoke central Lambda"
 
-    parameters = {
-      TargetAccountId = {
-        type    = "String"
-        default = "224761220970"
-      }
-      RoleName = {
-        type    = "String"
-        default = "AWS-SystemsManager-AutomationAdministrationRole"
-      }
-      LambdaFunctionName = {
-        type    = "String"
-        default = "budget_update_gha_alert"
-      }
-      AutomationAssumeRole = {
-        type    = "String"
-        default = "arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole"
-      }
-      SnsTopicArn = {
-        type    = "String"
-        default = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
-      }
-      Message = {
-        type    = "String"
-        default = "this is to notify you that you have exceeded your budget threshold"
-      }
-      BudgetName = {
-        type    = "StringList"
-        default = [for item in local.csvfld : item.BudgetName] #"ABC Operations PROD Account Overall Budget" #"ABC Operations DEV Account Overall Budget"
-      }
-      BudgetThresholdPercent = {
-        type    = "String"
-        default = "50.0" # Low threshold for testing
-      }
-      AccountId = {
-        type    = "String"
-        default = "752338767189"
-      }
-      # alertThreshold = {
-      #   type    = "String"
-      #   default = tostring(var.alert_threshold)
-      # }
-      alertTrigger = {
-        type    = "String"
-        default = "ACTUAL"
-      }
-    }
+#     parameters = {
+#       TargetAccountId = {
+#         type    = "String"
+#         default = "224761220970"
+#       }
+#       RoleName = {
+#         type    = "String"
+#         default = "AWS-SystemsManager-AutomationAdministrationRole"
+#       }
+#       LambdaFunctionName = {
+#         type    = "String"
+#         default = "budget_update_gha_alert"
+#       }
+#       AutomationAssumeRole = {
+#         type    = "String"
+#         default = "arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole"
+#       }
+#       SnsTopicArn = {
+#         type    = "String"
+#         default = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
+#       }
+#       Message = {
+#         type    = "String"
+#         default = "this is to notify you that you have exceeded your budget threshold"
+#       }
+#       BudgetName = {
+#         type    = "StringList"
+#         default = [for item in local.csvfld : item.BudgetName] #"ABC Operations PROD Account Overall Budget" #"ABC Operations DEV Account Overall Budget"
+#       }
+#       BudgetThresholdPercent = {
+#         type    = "String"
+#         default = "50.0" # Low threshold for testing
+#       }
+#       AccountId = {
+#         type    = "String"
+#         default = "752338767189"
+#       }
+#       # alertThreshold = {
+#       #   type    = "String"
+#       #   default = tostring(var.alert_threshold)
+#       # }
+#       alertTrigger = {
+#         type    = "String"
+#         default = "ACTUAL"
+#       }
+#     }
 
 
-    mainSteps = [
-      {
-        name   = "assumeRole"
-        action = "aws:executeAwsApi"
-        inputs = {
-          Service         = "sts"
-          Api             = "AssumeRole"
-          RoleArn         = "{{ AutomationAssumeRole }}"
-          RoleSessionName = "InvokeCentralLambdaSession"
-        }
-        outputs = [
-          { Name = "AccessKeyId", Selector = "$.Credentials.AccessKeyId", Type = "String" },
-          { Name = "SecretAccessKey", Selector = "$.Credentials.SecretAccessKey", Type = "String" },
-          { Name = "SessionToken", Selector = "$.Credentials.SessionToken", Type = "String" }
-        ]
-      },
-      {
-        name   = "invokeLambda"
-        action = "aws:executeScript"
-        inputs = {
-          Runtime = "python3.8"
-          Handler = "handler"
-          Script  = <<EOF
+#     mainSteps = [
+#       {
+#         name   = "assumeRole"
+#         action = "aws:executeAwsApi"
+#         inputs = {
+#           Service         = "sts"
+#           Api             = "AssumeRole"
+#           RoleArn         = "{{ AutomationAssumeRole }}"
+#           RoleSessionName = "InvokeCentralLambdaSession"
+#         }
+#         outputs = [
+#           { Name = "AccessKeyId", Selector = "$.Credentials.AccessKeyId", Type = "String" },
+#           { Name = "SecretAccessKey", Selector = "$.Credentials.SecretAccessKey", Type = "String" },
+#           { Name = "SessionToken", Selector = "$.Credentials.SessionToken", Type = "String" }
+#         ]
+#       },
+#       {
+#         name   = "invokeLambda"
+#         action = "aws:executeScript"
+#         inputs = {
+#           Runtime = "python3.8"
+#           Handler = "handler"
+# Script  = <<EOF
 
 
 # import boto3
@@ -784,9 +784,9 @@ resource "aws_ssm_document" "invoke_central_lambda" {
 #                 print(f"Alert triggered for {budget_name}: {alert_triggered}")
 
 #                 if alert_triggered:
-                    
+
 #                     print(f"Threshold exceeded for {budget_names} ({percentage_used:.2f}%) - publishing to SNS")
-                    
+
 #                     try:
 #                         payload = {
 #                           "account_id": account_id,
