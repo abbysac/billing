@@ -16,18 +16,24 @@ class DecimalEncoder(json.JSONEncoder):
 
 def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
+    
+    sns_record = event['Records'][0]['Sns']
+    sns_message_str = sns_record['Message']
+    print(f"[DEBUG] Raw SNS message string: {sns_message_str}")
+    message = json.loads(sns_message_str)
 
-    try:
-     # Extract SNS payload
-        sns_record = event['Records'][0]['Sns']
-        sns_message_str = sns_record['Message']
-        message = json.loads(sns_message_str)
-    except Exception as e:
-        print(f"Failed to parse SNS message: {e}")
-        return {
-            "statusCode": 400,
-             "body": "Invalid SNS message format"
- }
+
+#     try:
+#      # Extract SNS payload
+#         sns_record = event['Records'][0]['Sns']
+#         sns_message_str = sns_record['Message']
+#         message = json.loads(sns_message_str)
+#     except Exception as e:
+#         print(f"Failed to parse SNS message: {e}")
+#         return {
+#             "statusCode": 400,
+#              "body": "Invalid SNS message format"
+#  }
 
     try:
         # Extract values
