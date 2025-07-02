@@ -15,7 +15,7 @@ class DecimalEncoder(json.JSONEncoder):
         return super().default(obj)
 
 def lambda_handler(event, context):
-    print("Received Event:", json.dumps(event, indent=2))
+    # print("Received Event:", json.dumps(event, indent=2))
     
       # Extract SNS message
     if "Records" in event and isinstance(event["Records"], list):
