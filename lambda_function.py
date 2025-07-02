@@ -20,7 +20,7 @@ def lambda_handler(event, context):
     sns_record = event['Records'][0]['Sns']
     sns_message_str = sns_record['Message']
     print(f"[DEBUG] Raw SNS message string: {sns_message_str}")
-    message = json.loads(sns_message_str)
+    # message = json.loads(sns_message_str)
 
 
 #     try:
