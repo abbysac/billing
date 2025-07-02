@@ -14,9 +14,9 @@ class DecimalEncoder(json.JSONEncoder):
            return float(obj)
         return super().default(obj)
 
-# def lambda_handler(event, context):
+def lambda_handler(event):   #context):
 #     print("Received Event:", json.dumps(event, indent=2))
-def process_sns_message(event):    
+# def process_sns_message(event):    
     # The SNS message is likely contained within the 'event' structure
     # Parse the SNS message payload
     message = json.loads(event['Records'][0]['Sns']['Message'])  #
