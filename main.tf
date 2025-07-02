@@ -402,8 +402,8 @@ resource "aws_lambda_function" "test_lambda" {
   filename      = "lambda_function.zip"
   function_name = "budget_update_gha_alert"
   role          = aws_iam_role.lambda_role.arn
-  # handler       = "lambda_function.lambda_handler"
-  handler = process_sns_message.lambda_function
+  handler       = "lambda_function.lambda_handler"
+  # handler = process_sns_message.lambda_function
 
   source_code_hash = data.archive_file.lambda.output_base64sha256
 
