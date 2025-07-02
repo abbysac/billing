@@ -18,12 +18,23 @@ def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
     
       # Extract SNS message
-    if "Records" in event and isinstance(event["Records"], list):
+    if "Records" in event and isinstance(event["Records"], list) and event["Records"]:
         try:
             sns_message = event["Records"][0]["Sns"]["Message"]
-            message = json.loads(sns_message)
-        except (KeyError, IndexError, json.JSONDecodeError) as e:
-            print(f"Error parsing SNS message: {str(e)}")
+            print(f"Raw SNS Message: {sns_message}")
+            # Check if sns_message is a string and not empty
+            if not isinstance(sns_message, str) or not sns_message.strip():
+                print("Error: SNS message is empty or not a string")
+                return {"statusCode": 400, "body": "Invalid SNS message format"}
+            # Attempt to parse JSON
+            try:
+                message = json.loads(sns_message)
+            except json.JSONDecodeError as e:
+                print(f"Error parsing SNS message as JSON: {str(e)}")
+                # Handle non-JSON message if expected
+                message = {"raw_message": sns_message}  # Fallback to raw message
+        except (KeyError, IndexError) as e:
+            print(f"Error accessing SNS message: {str(e)}")
             return {"statusCode": 400, "body": "Invalid SNS event format"}
     else:
         print("Direct Budget event received, using raw event.")
