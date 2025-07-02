@@ -22,6 +22,21 @@ def lambda_handler(event, context):
     print(f"[DEBUG] Raw SNS message string: {sns_message_str}")
     # message = json.loads(sns_message_str)
 
+    if not sns_message_str.strip():
+        print("SNS message body is empty")
+        return {
+            "statusCode": 400,
+            "body": "Empty SNS message received"
+        }
+
+    try:
+        message = json.loads(sns_message_str)
+    except json.JSONDecodeError as e:
+        print(f"Invalid JSON in SNS message: {sns_message_str}")
+        return {
+            "statusCode": 400,
+            "body": f"Malformed JSON: {e}"
+        }
 
 #     try:
 #      # Extract SNS payload
