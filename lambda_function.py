@@ -28,19 +28,19 @@ def process_sns_message(event):
     print(f"Subject: {subject}")
     print(f"Body: {body}")
 
-# Example usage (assuming 'event' is the input to your script from SSM)
-# (Replace this with the actual way your SSM script receives the SNS message)
-event_data = {
-    'Records': [
-        {
-            'Sns': {
-                'Message': '{"Subject": "Important Notification", "Message": "This is the message content."}'
+    # Example usage (assuming 'event' is the input to your script from SSM)
+    # (Replace this with the actual way your SSM script receives the SNS message)
+    event_data = {
+        'Records': [
+            {
+                'Sns': {
+                    'Message': '{"Subject": "Important Notification", "Message": "This is the message content."}'
+                }
             }
-        }
-    ]
-}
+        ]
+    }
 
-process_sns_message(event_data)
+    process_sns_message(event_data)
     
     
     # sns_message = event["Records"][0]["Sns"]["Message"]
@@ -81,17 +81,17 @@ process_sns_message(event_data)
     #     message = event
    
 
-#     try:
-#      # Extract SNS payload
-#         sns_record = event['Records'][0]['Sns']
-#         sns_message_str = sns_record['Message']
-#         message = json.loads(sns_message_str)
-#     except Exception as e:
-#         print(f"Failed to parse SNS message: {e}")
-#         return {
-#             "statusCode": 400,
-#              "body": "Invalid SNS message format"
-#  }
+    try:
+    # Extract SNS payload
+        sns_record = event['Records'][0]['Sns']
+        sns_message_str = sns_record['Message']
+        message = json.loads(sns_message_str)
+    except Exception as e:
+        print(f"Failed to parse SNS message: {e}")
+        return {
+            "statusCode": 400,
+             "body": "Invalid SNS message format"
+ }
 
     try:
         # Extract values
