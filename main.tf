@@ -434,12 +434,12 @@ resource "aws_lambda_permission" "allow_sns" {
   source_arn    = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
 }
 
-resource "aws_lambda_permission" "allow_ssm" {
-  statement_id  = "AllowExecutionFromSSM"
-  action        = "lambda:InvokeFunction"
-  function_name = "budget_update_gha_alert"
-  principal     = "ssm.amazonaws.com"
-}
+# resource "aws_lambda_permission" "allow_ssm" {
+#   statement_id  = "AllowExecutionFromSSM"
+#   action        = "lambda:InvokeFunction"
+#   function_name = "budget_update_gha_alert"
+#   principal     = "ssm.amazonaws.com"
+# }
 
 # resource "aws_sns_topic_subscription" "lambda_target" {
 #   topic_arn  = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
