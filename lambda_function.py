@@ -92,7 +92,7 @@ Full Message:
                 Message={
                     'Subject': {'Data': subject},
                     'Body': {
-                        'Text': {'Data': email_body, 'Charset': 'UTF-8'}
+                        'Text': {'Data': email_body,} #'Charset': 'UTF-8'}
                     }
                 }
             )
