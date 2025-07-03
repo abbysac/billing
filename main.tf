@@ -131,7 +131,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "lambda:ListVersionsByFunction",
           "iam:GetPolicy",
           "iam:PutRolePolicy",
-          "lambda:RemovePermission"
+          "lambda:RemovePermission",
+          "lambda:AddPermission"
 
 
 
@@ -174,8 +175,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "ssm:CreateDocument",
           "lambda:UpdateFunctionConfiguration",
           "ssm:GetParameter",
-          "SNS:Subscribe",
-          "lambda:AddPermission"
+          "SNS:Subscribe"
+
 
 
 
