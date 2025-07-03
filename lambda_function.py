@@ -19,7 +19,7 @@ class DecimalEncoder(json.JSONEncoder):
 def get_budget_usage(account_id, budget_name):
     try:
         response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
-        budget = response["Budget"]
+        budget = response["BudgetName"]
         budget_limit = float(budget["BudgetLimit"]["Amount"])
         actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
         print(f"[Budget API] {budget_name}: Limit=${budget_limit}, Spend=${actual_spend}")
