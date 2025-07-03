@@ -22,19 +22,29 @@ def lambda_handler(event, context):
     if "Records" in event and isinstance(event["Records"], list):
         try:
             sns_message = event["Records"][0]["Sns"]["Message"]
-            print(f"Raw SNS Message: {sns_message}")
-            if not sns_message or not isinstance(sns_message, str):
-                return {"statusCode": 400, "body": "Empty or invalid SNS message"}
-            message = json.loads(sns_message)
-        except Exception as e:
-            print(f"[ERROR] Failed to parse SNS message: {e}")
-            return {"statusCode": 400, "body": f"Invalid SNS format: {str(e)}"}
+            try:
+                message = json.loads(sns_message)
+            except json.JSONDecodeError:
+                print("Message is not JSON, using raw string.")
+                message = {"raw": sns_message}
+        except (KeyError, IndexError) as e:
+                print (f"Error parsing SNS envelope: {str(e)}")
+                return {"statusCode": 400, "body": "Invlaid SNS event format"}
+        
+        #         print(f"Raw SNS Message: {sns_message}")
+        #         if not sns_message or not isinstance(sns_message, str):
+        #             return {"statusCode": 400, "body": "Empty or invalid SNS message"}
+        #         message = json.loads(sns_message)
+        # except Exception as e:
+        #     print(f"[ERROR] Failed to parse SNS message: {e}")
+        #     return {"statusCode": 400, "body": f"Invalid SNS format: {str(e)}"}
 
-        # ✅ Prevent recursion
-        if message.get("source") == "automation":
-            print("[INFO] Skipping alert triggered by automation to avoid recursion.")
-            return {"statusCode": 200, "body": "Ignored automation message"}
-
+        # # ✅ Prevent recursion
+        # if message.get("source") == "automation":
+        #     print("[INFO] Skipping alert triggered by automation to avoid recursion.")
+        #     return {"statusCode": 200, "body": "Ignored automation message"}
+       
+        # Extract Budget Details
         try:
             account_id = message.get("account_id")
             budget_name = message.get("budgetName")
