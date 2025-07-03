@@ -16,7 +16,7 @@ class DecimalEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-def handler(event, context):
+def lambda_handler(event, context):
     results = []
     message = event
 
