@@ -100,7 +100,7 @@ def lambda_handler(event, context):
     email_body = f"""
 Dear System Owner,
 
-{BudgetThresholdPercent}
+ #{BudgetThresholdPercent}
 The actual cost accrued yesterday in "{environment}" for "{budget_name}" has exceeded the 
 {percentage_used:.1f}% of  the monthly budget of ${budget_limit:.2f}.
 Please verify your current utilization and cost trajectory. If necessary, update your budget in OMFMgmt.
@@ -123,7 +123,7 @@ try:
             Source=SENDER_EMAIL,
             Destination={'ToAddresses': [RECIPIENT_EMAIL]},
             Message={
-                'Subject': {'Data': subject},
+                'Subject': {'Data': billing_alert},
                     'Body': {
                     'Text': {
                         'Data': email_body,
