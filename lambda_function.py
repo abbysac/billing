@@ -93,35 +93,42 @@ Full Message:
 {json.dumps(sns_message, indent=2, cls=DecimalEncoder)}
 """
 
-    try:
-                email_response = ses.send_email(
-                    Source=SENDER_EMAIL,
-                    Destination={"ToAddresses": [RECIPIENT_EMAIL]},
-                    Message={
-                        "Subject": {"Data": subject},
-                        "Body": {
-                            "Text": {
-                                "Data": email_body,
-                                "Charset": "UTF-8"
+        try:
+                    email_response = ses.send_email(
+                        Source=SENDER_EMAIL,
+                        Destination={"ToAddresses": [RECIPIENT_EMAIL]},
+                        Message={
+                            "Subject": {"Data": subject},
+                            "Body": {
+                                "Text": {
+                                    "Data": email_body,
+                                    "Charset": "UTF-8"
+                                }
                             }
                         }
-                    }
-                )
-                print(f"[SES] Email sent successfully: {email_response}")
+                    )
+                    print(f"[SES] Email sent successfully: {email_response}")
+        except Exception as e:
+            print("Failed to send email: {str(e)}")
+            return{"statusCode": 500, "body": "Failed to send email"}
+        return {"statusCode": 200, "body": "Email sent succesfully"}
+    except Exception as e: 
+        print(f"Error in main handler logic: {e}")
+        return {"statusCode": 400, "body": "Unexpected processing error"}
+                
+        # except ses.exceptions.MessageRejected as e:
+        #     print(f"[SES ERROR] Message rejected: {e}")
+        # except ses.exceptions.ConfigurationSetDoesNotExistException as e:
+        #     print(f"[SES ERROR] Configuration set missing: {e}")
+        # except Exception as e:
+        #     print(f"[SES ERROR] General exception: {str(e)}")
+        #     print(f"[SES] Email sent: {email_response['MessageId']}")
+        # except Exception as e:
+        #     print(f"[SES ERROR] Failed to send email: {str(e)}")
 
-    except ses.exceptions.MessageRejected as e:
-        print(f"[SES ERROR] Message rejected: {e}")
-    except ses.exceptions.ConfigurationSetDoesNotExistException as e:
-        print(f"[SES ERROR] Configuration set missing: {e}")
-    except Exception as e:
-        print(f"[SES ERROR] General exception: {str(e)}")
-        print(f"[SES] Email sent: {email_response['MessageId']}")
-    except Exception as e:
-        print(f"[SES ERROR] Failed to send email: {str(e)}")
+        
+        #     return {"statusCode": 200, "body": json.dumps(results, indent=2)}
 
-     
-        return {"statusCode": 200, "body": json.dumps(results, indent=2)}
-
-    except Exception as e:
-        print(f"[ERROR] {str(e)}")
-        return {"statusCode": 500, "body": str(e)}
+        # except Exception as e:
+        #     print(f"[ERROR] {str(e)}")
+        #     return {"statusCode": 500, "body": str(e)}
