@@ -728,53 +728,143 @@ resource "aws_ssm_document" "invoke_central_lambda" {
 import boto3
 import json
 import datetime
+import urllib.parse
 
 def handler(event, context):
     results = []
-
-    account_id = event.get("TargetAccountId")
-    budget_name = event.get("BudgetName")
-    sns_topic_arn = event.get("SnsTopicArn")
+    account_id = event.get("AccountId")
+    budget_names = event.get("BudgetName")
+    sns_topic_arn = event.get("SnsTopicArn", "")
     message = event.get("Message", "Budget threshold exceeded")
-    creds = event.get("Credentials")
 
-    session = boto3.Session(
-        aws_access_key_id=creds["AccessKeyId"],
-        aws_secret_access_key=creds["SecretAccessKey"],
-        aws_session_token=creds["SessionToken"]
-    )
+    print(f"Input event: {json.dumps(event, indent=2)}")
+    print(f"Processing account: {account_id}, budgets: {budget_names}, sns_topic: {sns_topic_arn}, message: {message}")
 
-    budgets = session.client("budgets")
-    sns = session.client("sns")
+    if isinstance(budget_names, str):
+        budget_names = [budget_names]
+    elif not isinstance(budget_names, list) or not budget_names:
+        results.append({"account_id": account_id, "error": "BudgetName must be a non-empty string or list"})
+        return {"results": results}
+
+    if not all([account_id, budget_names, sns_topic_arn]):
+        results.append({"account_id": account_id, "error": "Missing required inputs: AccountId, BudgetName, or SnsTopicArn"})
+        return {"results": results}
 
     try:
-        response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
-        budget = response["Budget"]
-        actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
-        budget_limit = float(budget["BudgetLimit"]["Amount"])
-        percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
+        session = boto3.Session(
+            aws_access_key_id=event["Credentials"]["AccessKeyId"],
+            aws_secret_access_key=event["Credentials"]["SecretAccessKey"],
+            aws_session_token=event["Credentials"]["SessionToken"]
+        )
+        budgets = session.client("budgets")
+        sns = session.client("sns")
+        ssm = session.client("ssm")
+        csv_data = ${jsonencode(local.csvfld)}
 
-        threshold = 80.0  # Hardcoded or pulled dynamically
-        if percent_used >= threshold:
-            print(f"Threshold exceeded: {percent_used}% >= {threshold}%")
-            sns.publish(
-                TopicArn=sns_topic_arn,
-                Message=json.dumps({
+        for budget_name in budget_names:
+            if not isinstance(budget_name, str):
+                results.append({"account_id": account_id, "budget_names": BudgetName, "error": f"Invalid BudgetName: {budget_name} is not a string"})
+                continue
+
+            try:
+                print(f"Describing budget: {budget_name}")
+                response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
+                budget = response["Budget"]
+                budget_limit = float(budget["BudgetLimit"]["Amount"])
+                actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
+                percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0
+
+                print(f"Budget: {budget_name}, Limit: $${budget_limit:.2f}, Spend: $${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
+
+                threshold_percent = 80.0
+                alert_trigger = "ACTUAL"
+                for row in csv_data:
+                    if row["BudgetName"] == budget_name and row["AccountId"] == account_id:
+                        threshold_percent = float(row["Alert1Threshold"])
+                        alert_trigger = row["Alert1Trigger"]
+                        break
+
+                print(f"Using threshold: {threshold_percent}%, trigger: {alert_trigger}, comparison: {percentage_used:.2f}% >= {threshold_percent}%")
+
+                alert_triggered = percentage_used >= threshold_percent
+                print(f"Alert triggered for {budget_name}: {alert_triggered}")
+
+                if alert_triggered:
+
+                    print(f"Threshold exceeded for {budget_names} ({percentage_used:.2f}%) - publishing to SNS")
+
+                    # try:
+                    #     payload = {
+                    #       "account_id": account_id,
+                    #       "budgetName": budget_name,
+                    #       "actual_spend": actual_spend,
+                    #       "budgetLimit": budget_limit,
+                    #       "threshold": threshold_percent,
+                    #       "environment": "stage",
+                    #       "message": message,
+                    #       # "alert_trigger": alert_trigger
+                    #   }
+
+                    #     print("Publishing SNS payload:")
+                    #     print(json.dumps(payload, indent=2))
+
+                    #     sns_response = sns.publish(
+                    #       TopicArn=sns_topic_arn,
+                    #       Message=json.dumps(payload)
+                    #     )
+
+
+                    try:
+                            sns_response = sns.publish(
+                                TopicArn=sns_topic_arn,
+                                Message=json.dumps({
+                                    "account_id": account_id,
+                                    "budgetName": budget_name,
+                                    "actual_spend": actual_spend,
+                                    "budget_limit": budget_limit,
+                                    # "percentage_used": percentage_used,
+                                    "alert_trigger": alert_trigger,
+                                    "environment": "stage",
+                                    "message":  message, #json.dumps(payload)
+                                    # "Subject": 'Billing Alert',
+                                    "threshold_percent": threshold_percent
+                                })
+                            )
+                            print(f"SNS published successfully for {budget_name}. MessageId: {sns_response['MessageId']}")
+                            # ssm.put_parameter(
+                            #     Name=param_name,
+                            #     Value=json.dumps({
+                            #         "message_id": sns_response["MessageId"],
+                            #         "timestamp": str(datetime.datetime.utcnow())
+                            #     }),
+                            #     Type="String"
+                            # )
+                    except Exception as sns_error:
+                        print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
+                        results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
+                        continue
+
+                results.append({
                     "account_id": account_id,
-                    "budgetName": budget_name,
+                    "budget_name": budget_name,
+                    "budget_limit": budget_limit,
                     "actual_spend": actual_spend,
-                    "budgetLimit": budget_limit,
-                    "threshold": threshold,
-                    "environment": "prod",
-                    "source": "automation",
-                    "message": message
+                    "percent_used": percentage_used,
+                    "alert_triggered": alert_triggered,
+                    "threshold_percent": threshold_percent,
+                    "alert_trigger": alert_trigger
                 })
-            )
+
+            except Exception as e:
+                print(f"Error processing budget {budget_name}: {str(e)}")
+                results.append({"account_id": account_id, "budget_name": budget_name, "error": str(e)})
 
     except Exception as e:
-        print(f"Error in alert logic: {str(e)}")
+        print(f"General error: {str(e)}")
+        results.append({"account_id": account_id, "error": str(e)})
 
-    return {"status": "done"}
+    print(f"Final results: {json.dumps(results, indent=2)}")
+    return {"results": results}
 EOF
           InputPayload = {
             AccountId   = "{{ TargetAccountId }}"

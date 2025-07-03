@@ -17,7 +17,8 @@ class DecimalEncoder(json.JSONEncoder):
 
 def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
-
+   
+   #Extratct SNS Message
     try:
         sns_message = event["Records"][0]["Sns"]["Message"]
         print(f"Raw SNS Message: {sns_message}")
@@ -59,8 +60,11 @@ def lambda_handler(event, context):
                 Parameters={'TargetAccountId': [account_id]}
             )
             print("SSM Automation triggered:", response)
-
+    except Exception as e:
+        print(f"Failed to start SSM Automation: {e}")
+        
         subject = f"AWS Budget Alert: {budget_name}"
+        
         email_body = f"""
 {account_id} - {budget_name}
 Dear System Owner,
