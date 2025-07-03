@@ -115,13 +115,13 @@ Full Message:
         print(f"[SES ERROR] Configuration set missing: {e}")
     except Exception as e:
         print(f"[SES ERROR] General exception: {str(e)}")
-        #             print(f"[SES] Email sent: {email_response['MessageId']}")
-    #         except Exception as e:
-    #             print(f"[SES ERROR] Failed to send email: {str(e)}")
+        print(f"[SES] Email sent: {email_response['MessageId']}")
+    except Exception as e:
+        print(f"[SES ERROR] Failed to send email: {str(e)}")
 
      
-    #     return {"statusCode": 200, "body": json.dumps(results, indent=2)}
+        return {"statusCode": 200, "body": json.dumps(results, indent=2)}
 
-    # except Exception as e:
-    #     print(f"[ERROR] {str(e)}")
-    #     return {"statusCode": 500, "body": str(e)}
+    except Exception as e:
+        print(f"[ERROR] {str(e)}")
+        return {"statusCode": 500, "body": str(e)}
