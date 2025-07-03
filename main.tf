@@ -729,9 +729,6 @@ import boto3
 import json
 import datetime
 
-ALERT_STATE_TABLE = "BudgetAlertState"  # DynamoDB table to track alerts
-
-
 def handler(event, context):
     results = []
 
@@ -749,24 +746,6 @@ def handler(event, context):
 
     budgets = session.client("budgets")
     sns = session.client("sns")
-    dynamodb = session.client("dynamodb")
-
-    key = f"{account_id}:{budget_name}"
-    now = datetime.datetime.utcnow()
-
-    # Check last alert time
-    try:
-        response = dynamodb.get_item(
-            TableName=ALERT_STATE_TABLE,
-            Key={"BudgetKey": {"S": key}}
-        )
-        if "Item" in response:
-            last_alert = datetime.datetime.fromisoformat(response["Item"]["LastAlertTime"]["S"])
-            if (now - last_alert).total_seconds() < 21600:  # 6 hours
-                print(f"Skipping alert for {key}, last alert sent at {last_alert}")
-                return {"skipped": True, "reason": "Alert sent recently"}
-    except Exception as e:
-        print(f"DynamoDB check failed: {str(e)}")
 
     try:
         response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
@@ -790,15 +769,6 @@ def handler(event, context):
                     "source": "automation",
                     "message": message
                 })
-            )
-
-            # Record alert
-            dynamodb.put_item(
-                TableName=ALERT_STATE_TABLE,
-                Item={
-                    "BudgetKey": {"S": key},
-                    "LastAlertTime": {"S": now.isoformat()}
-                }
             )
 
     except Exception as e:
