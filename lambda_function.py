@@ -2,38 +2,40 @@ import json
 import boto3
 import decimal
 
+# AWS Clients
 ses = boto3.client('ses')
 ssm = boto3.client('ssm')
+budgets_client = boto3.client('budgets')
 
+# Email Configuration
 SENDER_EMAIL = "abbysac@gmail.com"
 RECIPIENT_EMAIL = "camleous@yahoo.com"
 
-budgets_client = boto3.client("budgets")
+# Custom JSON Encoder
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, decimal.Decimal):
-           return float(obj)
+            return float(obj)
         return super().default(obj)
 
-# Helper to fetch budget usage dynamically
+# Helper Function to Dynamically Fetch Budget Spend & Limit
 def get_budget_usage(account_id, budget_name):
     try:
-        # response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
-        account_id = message.get("account_id")
-        budget_name = message.get("budget_name")
-        budget_limit = float(message.get(["BudgetLimit"]["Amount"]))
-        actual_spend = float(message.get(["CalculatedSpend"]["ActualSpend"]["Amount"]))
+        response = budgets_client.describe_budget(AccountId=account_id, BudgetName=budget_name)
+        budget = response["Budget"]
+        budget_limit = float(budget["BudgetLimit"]["Amount"])
+        actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
         print(f"[Budget API] {budget_name}: Limit=${budget_limit}, Spend=${actual_spend}")
         return budget_limit, actual_spend
     except Exception as e:
         print(f"[ERROR] Failed to fetch budget usage for {budget_name}: {e}")
         return None, None
 
-# Main Lambda handler
+# Main Lambda Handler
 def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
 
-    # Extract SNS payload
+    # Extract SNS Message
     try:
         sns_message = event["Records"][0]["Sns"]["Message"]
         print(f"Raw SNS Message: {sns_message}")
@@ -45,7 +47,6 @@ def lambda_handler(event, context):
         return {"statusCode": 400, "body": f"Invalid SNS format: {str(e)}"}
 
     try:
-        # Extract core fields
         account_id = message.get("account_id")
         budget_name = message.get("budgetName")
         threshold = float(message.get("threshold", 80.0))
@@ -55,7 +56,7 @@ def lambda_handler(event, context):
             print("[ERROR] Missing account_id or budgetName in message")
             return {"statusCode": 400, "body": "Missing required fields: account_id or budgetName"}
 
-        # Try to get spend data from SNS first
+        # Use SNS data if present, otherwise fall back to Budget API
         actual_spend_raw = message.get("actual_spend")
         budget_limit_raw = message.get("budgetLimit")
 
@@ -70,19 +71,19 @@ def lambda_handler(event, context):
 
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
         print(f"[INFO] Budget: {budget_name} - {percent_used:.2f}% used")
-        
-        # 🔁 Trigger SSM Automation if over threshold
+
+        # Optional: Trigger SSM Automation
         if percent_used >= threshold:
             try:
                 response = ssm.start_automation_execution(
-                DocumentName='budget_update_gha_alert',
-                Parameters={'TargetAccountId': [account_id]}
+                    DocumentName='budget_update_gha_alert',
+                    Parameters={'TargetAccountId': [account_id]}
                 )
                 print("SSM Automation triggered:", response)
             except Exception as e:
                 print(f"Failed to start SSM automation: {e}")
 
-            
+        # Compose Email
         subject = f"AWS Budget Alert: {budget_name}"
         email_body = f"""
 {account_id} - {budget_name}
@@ -104,6 +105,7 @@ Full Message:
 {json.dumps(message, indent=2, cls=DecimalEncoder)}
 """
 
+        # Send Email
         response = ses.send_email(
             Source=SENDER_EMAIL,
             Destination={'ToAddresses': [RECIPIENT_EMAIL]},
@@ -117,10 +119,9 @@ Full Message:
                 }
             }
         )
-        print(f"Email sent! Message ID: {response['MessageId']}")
+        print(f"[SUCCESS] Email sent! Message ID: {response['MessageId']}")
         return {"statusCode": 200, "body": "Email sent successfully"}
 
     except Exception as e:
         print(f"Error in handler: {str(e)}")
         return {"statusCode": 500, "body": f"Internal error: {str(e)}"}
-
