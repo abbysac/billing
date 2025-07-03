@@ -86,19 +86,19 @@ Full Message:
 {json.dumps(message, indent=2, cls=DecimalEncoder)}
 """
 
-        ses.send_email(
-            Source=SENDER_EMAIL,
-            Destination={'ToAddresses': [RECIPIENT_EMAIL]},
-            Message={
-                'Subject': {'Data': subject},
-                'Body': {
-                    'Text': {'Data': email_body, 'Charset': 'UTF-8'}
+            ses.send_email(
+                Source=SENDER_EMAIL,
+                Destination={'ToAddresses': [RECIPIENT_EMAIL]},
+                Message={
+                    'Subject': {'Data': subject},
+                    'Body': {
+                        'Text': {'Data': email_body, 'Charset': 'UTF-8'}
+                    }
                 }
-            }
-        )
-        print("Email sent.")
-        return {"statusCode": 200, "body": "Alert processed and email sent."}
+            )
+            print("Email sent.")
+            return {"statusCode": 200, "body": "Alert processed and email sent."}
 
-    except Exception as e:
-        print(f"Error in handler: {str(e)}")
-        return {"statusCode": 500, "body": f"Internal error: {str(e)}"}
+        except Exception as e:
+                print(f"Error in handler: {str(e)}")
+                return {"statusCode": 500, "body": f"Internal error: {str(e)}"}
