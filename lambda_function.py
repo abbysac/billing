@@ -52,18 +52,18 @@ def lambda_handler(event, context):
             environment = message.get("environment", "dev")
 
             # Dynamic budget fetch fallback
-            # actual_spend = message.get("actual_spend")
-            # budget_limit = message.get("budgetLimit")
+            actual_spend = message.get("actual_spend")
+            budget_limit = message.get("budgetLimit")
 
-            # if actual_spend is None or budget_limit is None:
-            #     print("[INFO] Budget values missing in SNS — fetching dynamically from Budgets API")
-            #     response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
-            #     budget = response["Budget"]
-            #     budget_limit = float(budget["BudgetLimit"]["Amount"])
-            #     actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
+            if actual_spend is None or budget_limit is None:
+                print("[INFO] Budget values missing in SNS — fetching dynamically from Budgets API")
+                response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
+                budget = response["Budget"]
+                budget_limit = float(budget["BudgetLimit"]["Amount"])
+                actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
 
-            # percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
-            # print(f"[INFO] Budget: {budget_name} - {percent_used:.2f}% used")
+            percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
+            print(f"[INFO] Budget: {budget_name} - {percent_used:.2f}% used")
 
         #     if percent_used >= threshold:
         #         response = ssm.start_automation_execution(
