@@ -844,7 +844,7 @@ def handler(event, context):
                     "budget_name": budget_name,
                     "budget_limit": budget_limit,
                     "actual_spend": actual_spend,
-                     "percent_used": percentage_used,
+                    "percent_used": percentage_used,
                     "alert_triggered": alert_triggered,
                     "threshold_percent": threshold_percent,
                     "alert_trigger": alert_trigger
