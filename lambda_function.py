@@ -19,7 +19,7 @@ class DecimalEncoder(json.JSONEncoder):
 def get_budget_usage(account_id, budget_name):
     try:
         response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
-        budget = response["BudgetName"]
+        budget = response["budget_name"]
         budget_limit = float(budget["BudgetLimit"]["Amount"])
         actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
         print(f"[Budget API] {budget_name}: Limit=${budget_limit}, Spend=${actual_spend}")
@@ -69,6 +69,17 @@ def lambda_handler(event, context):
 
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
         print(f"[INFO] Budget: {budget_name} - {percent_used:.2f}% used")
+        
+        # 🔁 Trigger SSM Automation if over threshold
+        if percent_used >= threshold:
+            try:
+                response = ssm.start_automation_execution(
+                DocumentName='budget_update_gha_alert',
+                Parameters={'TargetAccountId': [account_id]}
+                )
+                print("SSM Automation triggered:", response)
+            except Exception as e:
+                print(f"Failed to start SSM automation: {e}")
 
             
         subject = f"AWS Budget Alert: {budget_name}"
