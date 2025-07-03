@@ -678,7 +678,7 @@ resource "aws_ssm_document" "invoke_central_lambda" {
       }
       BudgetThresholdPercent = {
         type    = "String"
-        default = "50.0" # Low threshold for testing
+        default = "80.0" # Low threshold for testing
       }
       AccountId = {
         type    = "String"
