@@ -20,8 +20,8 @@ def lambda_handler(event, context):
     results = []
     message = event
 
-    account_id = event.get("TargetAccountId")
-    budget_name = event.get("BudgetName")
+    account_id = message.get("TargetAccountId")
+    budget_name = message.get("budgetName")
     threshold_percent = float(event.get("BudgetThresholdPercent", 80.0))
     environment = message.get("environment", "stage")
     # budget_limit = float.get("budgetLimit")
