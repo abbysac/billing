@@ -8,40 +8,69 @@ ssm = boto3.client('ssm')
 SENDER_EMAIL = "abbysac@gmail.com"
 RECIPIENT_EMAIL = "camleous@yahoo.com"
 
+budgets_client = boto3.client("budgets")
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, decimal.Decimal):
            return float(obj)
         return super().default(obj)
 
+# Helper to fetch budget usage dynamically
+def get_budget_usage(account_id, budget_name):
+    try:
+        response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
+        budget = response["Budget"]
+        budget_limit = float(budget["BudgetLimit"]["Amount"])
+        actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
+        print(f"[Budget API] {budget_name}: Limit=${budget_limit}, Spend=${actual_spend}")
+        return budget_limit, actual_spend
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch budget usage for {budget_name}: {e}")
+        return None, None
+
+# Main Lambda handler
 def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
 
-    # Extract and parse SNS message
+    # Extract SNS payload
     try:
         sns_message = event["Records"][0]["Sns"]["Message"]
-        print(f"Raw SNS Message: '{sns_message}'")
-
-        if not isinstance(sns_message, str) or not sns_message.strip():
-            print("Error: SNS message is empty")
-            return {"statusCode": 400, "body": "SNS message body is empty"}
-
+        print(f"Raw SNS Message: {sns_message}")
+        if not sns_message or not isinstance(sns_message, str):
+            return {"statusCode": 400, "body": "Empty or invalid SNS message"}
         message = json.loads(sns_message)
     except Exception as e:
-        print(f"Error parsing SNS message: {str(e)}")
+        print(f"[ERROR] Failed to parse SNS message: {e}")
         return {"statusCode": 400, "body": f"Invalid SNS format: {str(e)}"}
 
     try:
+        # Extract core fields
         account_id = message.get("account_id")
         budget_name = message.get("budgetName")
         threshold = float(message.get("threshold", 80.0))
-        actual_spend = float(message.get("actual_spend"))
-        budget_limit = float(message.get("budgetLimit"))
-        environment = message.get("environment", "stage")
+        environment = message.get("environment", "dev")
+
+        if not account_id or not budget_name:
+            print("[ERROR] Missing account_id or budgetName in message")
+            return {"statusCode": 400, "body": "Missing required fields: account_id or budgetName"}
+
+        # Try to get spend data from SNS first
+        actual_spend_raw = message.get("actual_spend")
+        budget_limit_raw = message.get("budgetLimit")
+
+        if actual_spend_raw is not None and budget_limit_raw is not None:
+            actual_spend = float(actual_spend_raw)
+            budget_limit = float(budget_limit_raw)
+        else:
+            print("[INFO] Budget values missing in SNS — fetching dynamically from Budgets API")
+            budget_limit, actual_spend = get_budget_usage(account_id, budget_name)
+            if budget_limit is None or actual_spend is None:
+                return {"statusCode": 500, "body": "Failed to retrieve budget usage"}
 
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
-        print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
+        print(f"[INFO] Budget: {budget_name} - {percent_used:.2f}% used")
 
+            
         subject = f"AWS Budget Alert: {budget_name}"
         email_body = f"""
 {account_id} - {budget_name}
