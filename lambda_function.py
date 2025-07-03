@@ -96,8 +96,8 @@ def lambda_handler(event, context):
  )
     else:
         threshold_info = f"Actual spend recorded: ${actual_spend:.2f}, but no valid budget limit was found."
-subject = f"AWS Budget Alert: {budget_name}"
-email_body = f"""
+    subject = f"AWS Budget Alert: {budget_name}"
+    email_body = f"""
 Dear System Owner,
 
 {BudgetThresholdPercent}
@@ -118,22 +118,29 @@ Full Message:
     
     # Send plain text email (no HTML, no templates)
           
-response = ses.send_email(  
-        Source=SENDER_EMAIL,
-        Destination={'ToAddresses': [RECIPIENT_EMAIL]},
-        Message={
-            'Subject': {'Data': subject},
-                'Body': {
-                'Text': {
-                    'Data': email_body,
-                        'Charset': 'UTF-8'
+    ses.send_email(  
+            Source=SENDER_EMAIL,
+            Destination={'ToAddresses': [RECIPIENT_EMAIL]},
+            Message={
+                'Subject': {'Data': subject},
+                    'Body': {
+                    'Text': {
+                        'Data': email_body,
+                            'Charset': 'UTF-8'
+                        }
+                        }
                     }
-                    }
-                }
-            )
+                )
 
-print(f"Email sent! Message ID: {response['MessageId']}")
-return {"statusCode": 200, "body": "Email sent successfully"}
+    print(f"Email sent! Message ID: {response['MessageId']}")
+    return {"statusCode": 200, "body": "Email sent successfully"}
+
+# except Exception as e:
+#     print(f"[ERROR] {str(e)}")
+#     return {
+#         "statusCode": 500,
+#         "body": f"Internal error: {str(e)}"
+#     }
 
 # except Exception as e:
 #             print(f"Failed to send email: {stre(e)}")
