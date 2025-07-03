@@ -107,21 +107,20 @@ Full Message:
                         }
                     }
                 )
-                print(f"[SES] Email sent: {email_response['MessageId']}")
-            except Exception as e:
-                print(f"[SES ERROR] Failed to send email: {str(e)}")
-
-        results.append({
-            "account_id": account_id,
-            "budget_name": budget_name,
-            "budget_limit": budget_limit,
-            "actual_spend": actual_spend,
-            "percent_used": percentage_used,
-            "alert_triggered": alert_triggered
-        })
-
-        return {"statusCode": 200, "body": json.dumps(results, indent=2)}
-
+                print(f"[SES] Email sent successfully: {email_response}")
+    except ses.exceptions.MessageRejected as e:
+        print(f"[SES ERROR] Message rejected: {e}")
+    except ses.exceptions.ConfigurationSetDoesNotExistException as e:
+        print(f"[SES ERROR] Configuration set missing: {e}")
     except Exception as e:
-        print(f"[ERROR] {str(e)}")
-        return {"statusCode": 500, "body": str(e)}
+        print(f"[SES ERROR] General exception: {str(e)}")
+        #             print(f"[SES] Email sent: {email_response['MessageId']}")
+    #         except Exception as e:
+    #             print(f"[SES ERROR] Failed to send email: {str(e)}")
+
+     
+    #     return {"statusCode": 200, "body": json.dumps(results, indent=2)}
+
+    # except Exception as e:
+    #     print(f"[ERROR] {str(e)}")
+    #     return {"statusCode": 500, "body": str(e)}
