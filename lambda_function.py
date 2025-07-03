@@ -96,8 +96,8 @@ def lambda_handler(event, context):
  )
     else:
         threshold_info = f"Actual spend recorded: ${actual_spend:.2f}, but no valid budget limit was found."
-    subject = f"AWS Budget Alert: {budget_name}"
-    email_body = f"""
+subject = f"AWS Budget Alert: {budget_name}"
+email_body = f"""
 Dear System Owner,
 
  #{BudgetThresholdPercent}
@@ -123,7 +123,7 @@ try:
             Source=SENDER_EMAIL,
             Destination={'ToAddresses': [RECIPIENT_EMAIL]},
             Message={
-                'Subject': {'Data': billing_alert},
+                'Subject': {'Data': subject},
                     'Body': {
                     'Text': {
                         'Data': email_body,
