@@ -118,19 +118,24 @@ Full Message:
     
     # Send plain text email (no HTML, no templates)
           
-response = ses.send_email(
-    Source=SENDER_EMAIL,
-    Destination={'ToAddresses': [RECIPIENT_EMAIL]},
+response = ses.send_email(  
+        Source=SENDER_EMAIL,
+        Destination={'ToAddresses': [RECIPIENT_EMAIL]},
         Message={
             'Subject': {'Data': subject},
-            'Body': {
+                'Body': {
                 'Text': {
                     'Data': email_body,
-                    'Charset': 'UTF-8'
+                        'Charset': 'UTF-8'
+                    }
                     }
                 }
-            }
-        )
+            )
 
 print(f"Email sent! Message ID: {response['MessageId']}")
 return {"statusCode": 200, "body": "Email sent successfully"}
+
+# except Exception as e:
+#             print(f"Failed to send email: {stre(e)}")
+# return {"statusCode": 500, "body": "Failed to send email"}
+# return {"statusCode": 200, "body": "Email sent successfully"}
