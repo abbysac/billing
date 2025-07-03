@@ -174,7 +174,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "ssm:CreateDocument",
           "lambda:UpdateFunctionConfiguration",
           "ssm:GetParameter",
-          "SNS:Subscribe"
+          "SNS:Subscribe",
+          "lambda:AddPermission"
 
 
 
