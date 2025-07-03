@@ -108,12 +108,13 @@ Full Message:
                     }
                 )
                 print(f"[SES] Email sent successfully: {email_response}")
-    except ses.exceptions.MessageRejected as e:
-        print(f"[SES ERROR] Message rejected: {e}")
-    except ses.exceptions.ConfigurationSetDoesNotExistException as e:
-        print(f"[SES ERROR] Configuration set missing: {e}")
-    except Exception as e:
-        print(f"[SES ERROR] General exception: {str(e)}")
+
+    # except ses.exceptions.MessageRejected as e:
+    #     print(f"[SES ERROR] Message rejected: {e}")
+    # except ses.exceptions.ConfigurationSetDoesNotExistException as e:
+    #     print(f"[SES ERROR] Configuration set missing: {e}")
+    # except Exception as e:
+    #     print(f"[SES ERROR] General exception: {str(e)}")
         #             print(f"[SES] Email sent: {email_response['MessageId']}")
     #         except Exception as e:
     #             print(f"[SES ERROR] Failed to send email: {str(e)}")
