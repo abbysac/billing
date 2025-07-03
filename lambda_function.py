@@ -14,7 +14,7 @@ class DecimalEncoder(json.JSONEncoder):
            return float(obj)
         return super().default(obj)
 
-def handler(event, context):
+def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
 
     # Extract and parse SNS message
