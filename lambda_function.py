@@ -3,12 +3,30 @@ import boto3
 import json
 import decimal
 
+ses = boto3.client('ses')
+ssm = boto3.client('ssm')
+
+SENDER_EMAIL = "abbysac@gmail.com"  # SES-verified email
+RECIPIENT_EMAIL = "camleous@yahoo.com"
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, decimal.Decimal):
+            return float(obj)
+        return super().default(obj)
+
+
 def handler(event, context):
     results = []
+    message = event
 
     account_id = event.get("TargetAccountId")
     budget_name = event.get("BudgetName")
-    threshold_percent = float(event.get("BudgetThresholdPercent", 50.0))
+    threshold_percent = float(event.get("BudgetThresholdPercent", 80.0))
+    environment = message.get("environment", "stage")
+    # budget_limit = float.get("budgetLimit")
+    # actual_spend = float.message.get("actual_spend")
+    
 
     try:
             session = boto3.Session(
@@ -63,9 +81,56 @@ def handler(event, context):
 
     print(f"Processing account: {account_id}, budget: {budget_name}, threshold: {threshold_percent}%")
 
-    if not all([account_id, budget_name, sns_topic_arn]):
+    if not all([account_id, budget_name, SnsTopicArn]):
             results.append({
             "account_id": account_id,
             "error": "Missing required inputs: TargetAccountId, BudgetName, or SnsTopicArn"
             })
             return {"results": results}
+            
+    if budget_limit > 0:
+        threshold_info = (
+         f'The actual cost accrued yesterday in "{environment}" has exceeded '
+         f"{ percentage_used:.1f}% of the monthly budget of ${budget_limit:.2f}.\n"
+         f"Current actual spend: ${actual_spend:.2f}."
+ )
+    else:
+        threshold_info = f"Actual spend recorded: ${actual_spend:.2f}, but no valid budget limit was found."
+subject = f"AWS Budget Alert: {budget_name}"
+email_body = f"""
+Dear System Owner,
+
+{BudgetThresholdPercent}
+The actual cost accrued yesterday in "{environment}" for "{budget_name}" has exceeded the 
+{percentage_used:.1f}% of  the monthly budget of ${budget_limit:.2f}.
+Please verify your current utilization and cost trajectory. If necessary, update your budget in OMFMgmt.
+
+Thank you, 
+OMF CloudOps
+
+Budget Name: {budget_name} 
+Account ID: {account_id} 
+Environment: {environment}
+
+Full Message:
+{json.dumps(message, indent=2, cls=DecimalEncoder)}
+"""
+    
+    # Send plain text email (no HTML, no templates)
+          
+response = ses.send_email(
+    Source=SENDER_EMAIL,
+    Destination={'ToAddresses': [RECIPIENT_EMAIL]},
+        Message={
+            'Subject': {'Data': subject},
+            'Body': {
+                'Text': {
+                    'Data': email_body,
+                    'Charset': 'UTF-8'
+                    }
+                }
+            }
+        )
+
+print(f"Email sent! Message ID: {response['MessageId']}")
+return {"statusCode": 200, "body": "Email sent successfully"}
