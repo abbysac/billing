@@ -118,7 +118,8 @@ Full Message:
     
     # Send plain text email (no HTML, no templates)
           
-    ses.send_email(  
+try:
+    response = ses.send_email( 
             Source=SENDER_EMAIL,
             Destination={'ToAddresses': [RECIPIENT_EMAIL]},
             Message={
@@ -131,9 +132,12 @@ Full Message:
                         }
                     }
                 )
+    print("Email sent:", json.dumps(response, indent=2))
+except Exception as e:
+    print(f"[ERROR] Failed to send email: {str(e)}")
 
-    print(f"Email sent! Message ID: {response['MessageId']}")
-    return {"statusCode": 200, "body": "Email sent successfully"}
+    # print(f"Email sent! Message ID: {response['MessageId']}")
+    # return {"statusCode": 200, "body": "Email sent successfully"}
 
 # except Exception as e:
 #     print(f"[ERROR] {str(e)}")
