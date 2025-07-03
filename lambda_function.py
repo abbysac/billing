@@ -11,14 +11,14 @@ budgets_client = boto3.client('budgets')
 SENDER_EMAIL = "abbysac@gmail.com"
 RECIPIENT_EMAIL = "camleous@yahoo.com"
 
-# Custom JSON Encoder
+# Custom JSON Encoder for Decimal
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, decimal.Decimal):
             return float(obj)
         return super().default(obj)
 
-# Helper Function to Dynamically Fetch Budget Spend & Limit
+# Helper to dynamically fetch budget values
 def get_budget_usage(account_id, budget_name):
     try:
         response = budgets_client.describe_budget(AccountId=account_id, BudgetName=budget_name)
@@ -31,11 +31,11 @@ def get_budget_usage(account_id, budget_name):
         print(f"[ERROR] Failed to fetch budget usage for {budget_name}: {e}")
         return None, None
 
-# Main Lambda Handler
+# Main Lambda handler
 def lambda_handler(event, context):
-    print("Received Event:", json.dumps(event, indent=2))
+    print("Received Event:", json.dumps(event, indent=2, cls=DecimalEncoder))
 
-    # Extract SNS Message
+    # Extract SNS message payload
     try:
         sns_message = event["Records"][0]["Sns"]["Message"]
         print(f"Raw SNS Message: {sns_message}")
@@ -47,16 +47,16 @@ def lambda_handler(event, context):
         return {"statusCode": 400, "body": f"Invalid SNS format: {str(e)}"}
 
     try:
+        # Core fields
         account_id = message.get("account_id")
         budget_name = message.get("budgetName")
         threshold = float(message.get("threshold", 80.0))
         environment = message.get("environment", "dev")
 
         if not account_id or not budget_name:
-            print("[ERROR] Missing account_id or budgetName in message")
             return {"statusCode": 400, "body": "Missing required fields: account_id or budgetName"}
 
-        # Use SNS data if present, otherwise fall back to Budget API
+        # Get usage from message or API
         actual_spend_raw = message.get("actual_spend")
         budget_limit_raw = message.get("budgetLimit")
 
@@ -69,10 +69,11 @@ def lambda_handler(event, context):
             if budget_limit is None or actual_spend is None:
                 return {"statusCode": 500, "body": "Failed to retrieve budget usage"}
 
+        # Calculate percent used
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
         print(f"[INFO] Budget: {budget_name} - {percent_used:.2f}% used")
 
-        # Optional: Trigger SSM Automation
+        # Trigger SSM Automation if threshold exceeded
         if percent_used >= threshold:
             try:
                 response = ssm.start_automation_execution(
@@ -81,9 +82,9 @@ def lambda_handler(event, context):
                 )
                 print("SSM Automation triggered:", response)
             except Exception as e:
-                print(f"Failed to start SSM automation: {e}")
+                print(f"[ERROR] Failed to start SSM automation: {e}")
 
-        # Compose Email
+        # Compose email
         subject = f"AWS Budget Alert: {budget_name}"
         email_body = f"""
 {account_id} - {budget_name}
@@ -105,7 +106,7 @@ Full Message:
 {json.dumps(message, indent=2, cls=DecimalEncoder)}
 """
 
-        # Send Email
+        # Send SES email
         response = ses.send_email(
             Source=SENDER_EMAIL,
             Destination={'ToAddresses': [RECIPIENT_EMAIL]},
@@ -123,5 +124,5 @@ Full Message:
         return {"statusCode": 200, "body": "Email sent successfully"}
 
     except Exception as e:
-        print(f"Error in handler: {str(e)}")
+        print(f"[ERROR] Error in handler: {str(e)}")
         return {"statusCode": 500, "body": f"Internal error: {str(e)}"}
