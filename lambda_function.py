@@ -1,11 +1,18 @@
+# --- SSM Automation Document (SSM Step) Sample Invocation ---
+# (Terraform or JSON-based SSM Document should call this Lambda as a step)
+
 import boto3
 import json
 import decimal
 
-ses = boto3.client('ses')
+# Email Config
 SENDER_EMAIL = "abbysac@gmail.com"
 RECIPIENT_EMAIL = "camleous@yahoo.com"
 
+# Set up boto3 clients
+ses = boto3.client('ses')
+
+# Allow decimals in JSON
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, decimal.Decimal):
@@ -13,122 +20,78 @@ class DecimalEncoder(json.JSONEncoder):
         return super().default(obj)
 
 def lambda_handler(event, context):
-    print("Received event:", json.dumps(event, indent=2, cls=DecimalEncoder))
-    results = []
+    print("Received Event:", json.dumps(event, indent=2))
+
+    # Required parameters from SSM Document
+    account_id = event.get("TargetAccountId")
+    budget_name = event.get("BudgetName")
+    threshold_percent = float(event.get("BudgetThresholdPercent", 80.0))
+    environment = event.get("Environment", "dev")
+
+    # Assume credentials passed from automation role
+    try:
+        session = boto3.Session(
+            aws_access_key_id=event["Credentials"]["AccessKeyId"],
+            aws_secret_access_key=event["Credentials"]["SecretAccessKey"],
+            aws_session_token=event["Credentials"]["SessionToken"]
+        )
+    except KeyError as e:
+        return {"statusCode": 400, "body": f"Missing credentials: {str(e)}"}
+
+    budgets = session.client("budgets")
 
     try:
-        # Parse input
-        account_id = event.get("TargetAccountId")
-        budget_name = event.get("BudgetName")
-        threshold_percent = float(event.get("BudgetThresholdPercent", 80.0))
-        environment = event.get("environment", "stage")
-        sns_topic_arn = event.get("SnsTopicArn")
-        credentials = event.get("Credentials", {})
+        budget_resp = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
+        budget = budget_resp["Budget"]
 
-        if not all([account_id, budget_name, threshold_percent, sns_topic_arn]):
-            return {
-                "statusCode": 400,
-                "body": "Missing required inputs: TargetAccountId, BudgetName, BudgetThresholdPercent, or SnsTopicArn"
-            }
-
-        # Create session with assumed credentials
-        session = boto3.Session(
-            aws_access_key_id=credentials["AccessKeyId"],
-            aws_secret_access_key=credentials["SecretAccessKey"],
-            aws_session_token=credentials["SessionToken"]
-        )
-
-        budgets = session.client("budgets")
-        sns = session.client("sns")
-
-        response = budgets.describe_budget(
-            AccountId=account_id,
-            BudgetName=budget_name
-        )
-
-        budget = response["Budget"]
         budget_limit = float(budget["BudgetLimit"]["Amount"])
         actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
         percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0
 
-        print(f"[INFO] {budget_name} | Limit=${budget_limit:.2f}, Spend=${actual_spend:.2f}, Used={percentage_used:.2f}%")
+        print(f"[INFO] Budget {budget_name}: Used {percentage_used:.2f}% of ${budget_limit:.2f}")
 
-        alert_triggered = percentage_used >= threshold_percent
-
-        if alert_triggered:
-            # Publish SNS message
-            sns_message = {
-                "account_id": account_id,
-                "budgetName": budget_name,
-                "amount": actual_spend,
-                "budgetLimit": budget_limit,
-                "threshold": threshold_percent,
-                "alertType": "ACTUAL",
-                "environment": environment
-            }
-
-            sns.publish(
-                TopicArn=sns_topic_arn,
-                Message=json.dumps(sns_message)
-            )
-            print(f"[SNS] Alert published for {budget_name}")
-
-            # Compose and send email
+        if percentage_used >= threshold_percent:
             subject = f"AWS Budget Alert: {budget_name}"
             email_body = f"""
 Dear System Owner,
 
-The actual cost accrued yesterday in "{environment}" for "{budget_name}" has exceeded
-{percentage_used:.1f}% of the monthly budget of ${budget_limit:.2f}.
-Current actual spend: ${actual_spend:.2f}.
+The budget for account {account_id} in environment '{environment}' has exceeded the threshold:
+
+Budget Name: {budget_name}
+Budget Limit: ${budget_limit:.2f}
+Actual Spend: ${actual_spend:.2f}
+Percent Used: {percentage_used:.1f}%
+
+Threshold: {threshold_percent:.1f}%
 
 Thank you,
 OMF CloudOps
+            """
 
-Budget Name: {budget_name}
-Account ID: {account_id}
-Environment: {environment}
-
-Full Message:
-{json.dumps(sns_message, indent=2, cls=DecimalEncoder)}
-"""
-
-        try:
-                    email_response = ses.send_email(
-                        Source=SENDER_EMAIL,
-                        Destination={"ToAddresses": [RECIPIENT_EMAIL]},
-                        Message={
-                            "Subject": {"Data": subject},
-                            "Body": {
-                                "Text": {
-                                    "Data": email_body,
-                                    "Charset": "UTF-8"
-                                }
-                            }
+            ses.send_email(
+                Source=SENDER_EMAIL,
+                Destination={"ToAddresses": [RECIPIENT_EMAIL]},
+                Message={
+                    'Subject': {'Data': subject},
+                    'Body': {
+                        'Text': {
+                            'Data': email_body,
+                            'Charset': 'UTF-8'
                         }
-                    )
-                    print(f"[SES] Email sent successfully: {email_response}")
-        except Exception as e:
-            print("Failed to send email: {str(e)}")
-            return{"statusCode": 500, "body": "Failed to send email"}
-        return {"statusCode": 200, "body": "Email sent succesfully"}
-    except Exception as e: 
-        print(f"Error in main handler logic: {e}")
-        return {"statusCode": 400, "body": "Unexpected processing error"}
-                
-        # except ses.exceptions.MessageRejected as e:
-        #     print(f"[SES ERROR] Message rejected: {e}")
-        # except ses.exceptions.ConfigurationSetDoesNotExistException as e:
-        #     print(f"[SES ERROR] Configuration set missing: {e}")
-        # except Exception as e:
-        #     print(f"[SES ERROR] General exception: {str(e)}")
-        #     print(f"[SES] Email sent: {email_response['MessageId']}")
-        # except Exception as e:
-        #     print(f"[SES ERROR] Failed to send email: {str(e)}")
+                    }
+                }
+            )
 
-        
-        #     return {"statusCode": 200, "body": json.dumps(results, indent=2)}
+            return {
+                "statusCode": 200,
+                "body": f"Alert email sent for {budget_name} at {percentage_used:.2f}% usage"
+            }
+        else:
+            return {
+                "statusCode": 200,
+                "body": f"Budget {budget_name} at {percentage_used:.2f}% does not exceed threshold"
+            }
 
-        # except Exception as e:
-        #     print(f"[ERROR] {str(e)}")
-        #     return {"statusCode": 500, "body": str(e)}
+    except Exception as e:
+        print(f"[ERROR] Failed to process budget alert: {str(e)}")
+        return {"statusCode": 500, "body": str(e)}
