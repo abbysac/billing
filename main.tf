@@ -739,7 +739,8 @@ def handler(event, context):
 
     print(f"Input event: {json.dumps(event, indent=2)}")
     print(f"Processing account: {account_id}, budgets: {budget_names}, sns_topic: {sns_topic_arn}, message: {message}")
-
+    
+    #Ensure budget_names is a list
     if isinstance(budget_names, str):
         budget_names = [budget_names]
     elif not isinstance(budget_names, list) or not budget_names:
@@ -774,7 +775,7 @@ def handler(event, context):
                 actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
                 percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0
 
-                print(f"Budget: {budget_name}, Limit: $${budget_limit:.2f}, Spend: $${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
+                print(f"Budget: {budget_name}, Limit: $${budget_limit:.2f}, Spend: $${actual_spend:.2f}, Percent Used: $${percentage_used:.2f}%")
 
                 threshold_percent = 80.0
                 alert_trigger = "ACTUAL"
@@ -906,7 +907,7 @@ resource "null_resource" "trigger_ssm_on_csv_change" {
   provisioner "local-exec" {
     command = <<EOT
       echo Debug: AccountId=${each.value.account_id}, BudgetName=${each.value.budget_name}, BudgetAmount=${each.value.budget_amount}, AlertThreshold=${each.value.alert_threshold}
-      aws ssm start-automation-execution --document-name "budget_update_gha_alert" --region "${var.aws_region}" --parameters "{\"AccountId\":\"${each.value.account_id}\",\"BudgetName\":\"${each.value.budget_name}\",\"BudgetAmount\":\"${each.value.budget_amount}\",\"AlertThreshold\":\"${each.value.alert_threshold}\"}" || echo SSM execution failed: %ERRORLEVEL%
+      aws ssm start-automation-execution --document-name "budget_update_gha_alert" --region "${var.aws_region}" --parameters "{\"TargetAccountId\":\"${each.value.account_id}\",\"BudgetName\":\"${each.value.budget_name}\",\"BudgetAmount\":\"${each.value.budget_amount}\",\"AlertThreshold\":\"${each.value.alert_threshold}\"}" || echo SSM execution failed: %ERRORLEVEL%
     EOT
   }
 
