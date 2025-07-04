@@ -1,30 +1,28 @@
-import json
+
+# --- SSM Automation Document (SSM Step) Sample Invocation ---
+# (Terraform or JSON-based SSM Document should call this Lambda as a step)
+
 import boto3
+import json
 import decimal
 
-ses = boto3.client('ses')
-ssm = boto3.client('ssm')
-
+# Email Config
 SENDER_EMAIL = "abbysac@gmail.com"
 RECIPIENT_EMAIL = "camleous@yahoo.com"
 
+# Set up boto3 clients
+ses = boto3.client('ses')
+
+# Allow decimals in JSON
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, decimal.Decimal):
             return float(obj)
         return super().default(obj)
 
-def get_ssm_parameter(name, default=None):
-    """Fetch a parameter from SSM Parameter Store with a fallback default."""
-    try:
-        response = ssm.get_parameter(Name=name, WithDecryption=True)
-        return response['Parameter']['Value']
-    except ssm.exceptions.ParameterNotFound:
-        print(f"SSM parameter {name} not found, using default: {default}")
-        return default
 
 def lambda_handler(event, context):
-   print("Received Event:", json.dumps(event, indent=2))
+    print("Received Event:", json.dumps(event, indent=2))
 
     # Extract SNS message
     if "Records" in event and isinstance(event["Records"], list) and event["Records"]:
@@ -49,36 +47,15 @@ def lambda_handler(event, context):
         print("Direct Budget event received, using raw event.")
         message = event
 
+    # Rest of your logic
     try:
-        # Dynamically extract values with fallbacks from SSM or environment variables
-        account_id = message.get("account_id") or get_ssm_parameter("/budgets/default/account_id", "Unknown")
-        budget_name = message.get("budgetName") or get_ssm_parameter("/budgets/default/budget_name", "UnknownBudget")
-        environment = message.get("environment") or get_ssm_parameter("/budgets/default/environment", os.getenv("ENVIRONMENT", "dev"))
-
-        # Numeric fields with validation
-        try:
-            threshold = float(message.get("threshold_percent") or message.get("threshold", get_ssm_parameter("/budgets/default/threshold", 80.0)))
-            if threshold < 0:
-                raise ValueError("Threshold cannot be negative")
-        except (ValueError, TypeError) as e:
-            print(f"Invalid threshold value: {str(e)}")
-            return {"statusCode": 400, "body": "Invalid threshold value"}
-
-        try:
-            actual_spend = float(message.get("actual_spend") or message.get("amount", get_ssm_parameter("/budgets/default/actual_spend", 0.0)))
-            if actual_spend < 0:
-                raise ValueError("Actual spend cannot be negative")
-        except (ValueError, TypeError) as e:
-            print(f"Invalid actual_spend value: {str(e)}")
-            return {"statusCode": 400, "body": "Invalid actual spend value"}
-
-        try:
-            budget_limit = float(message.get("budget_limit") or message.get("budgetLimit", get_ssm_parameter("/budgets/default/budget_limit", 1.0)))
-            if budget_limit <= 0:
-                raise ValueError("Budget limit must be positive")
-        except (ValueError, TypeError) as e:
-            print(f"Invalid budget_limit value: {str(e)}")
-            return {"statusCode": 400, "body": "Invalid budget limit value"}
+        # Extract values
+        account_id = message.get("account_id", "TargetAccountId")
+        budget_name = message.get("budgetName", "BudgetName")
+        threshold = float(message.get("threshold", 80.0))
+        actual_spend = float(message.get("amount", 3.69))
+        budget_limit = float(message.get("budgetLimit", 3))
+        environment = message.get("environment", "dev")
 
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
 
@@ -97,24 +74,24 @@ def lambda_handler(event, context):
 
         subject = f"AWS Budget Alert: {budget_name}"
         email_body = f"""
-{account_id} {budget_name}
-Dear System Owner,
+        {account_id} {budget_name}
+        Dear System Owner,
 
-The actual cost accrued yesterday in "{environment}" for "{budget_name}" has exceeded
-{percent_used:.1f}% of the monthly budget of ${budget_limit:.2f}.
-Current actual spend: ${actual_spend:.2f}.
+        The actual cost accrued yesterday in "{environment}" for "{budget_name}" has exceeded
+        {percent_used:.1f}% of the monthly budget of ${budget_limit:.2f}.
+        Current actual spend: ${actual_spend:.2f}.
 
-Thank you, 
-OMF CloudOps
+        Thank you, 
+        OMF CloudOps
 
-Budget Name: {budget_name}
-Account ID: {account_id}
-Environment: {environment}
-Budget Limit: ${budget_limit:.2f}
+        Budget Name: {budget_name}
+        Account ID: {account_id}
+        Environment: {environment}
+        Budget Limit: ${budget_limit:.2f}
 
-Full Message:
-{json.dumps(message, indent=2, cls=DecimalEncoder)}
-"""
+        Full Message:
+        {json.dumps(message, indent=2, cls=DecimalEncoder)}
+        """
 
         try:
             response = ses.send_email(
@@ -135,7 +112,6 @@ Full Message:
         except Exception as e:
             print(f"Failed to send email: {str(e)}")
             return {"statusCode": 500, "body": "Failed to send email"}
-
     except Exception as e:
         print(f"Error in main handler logic: {e}")
         return {"statusCode": 400, "body": "Unexpected processing error"}
