@@ -19,58 +19,83 @@ class DecimalEncoder(json.JSONEncoder):
             return float(obj)
         return super().default(obj)
 
+
 def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
 
-    # Required parameters from SSM Document
-    account_id = event.get("TargetAccountId")
-    budget_name = event.get("BudgetName")
-    threshold_percent = float(event.get("BudgetThresholdPercent", 80.0))
-    environment = event.get("Environment", "dev")
+    # Extract SNS message
+    if "Records" in event and isinstance(event["Records"], list) and event["Records"]:
+        try:
+            sns_message = event["Records"][0]["Sns"]["Message"]
+            print(f"Raw SNS Message: {sns_message}")
+            # Check if sns_message is a string and not empty
+            if not isinstance(sns_message, str) or not sns_message.strip():
+                print("Error: SNS message is empty or not a string")
+                return {"statusCode": 400, "body": "Invalid SNS message format"}
+            # Attempt to parse JSON
+            try:
+                message = json.loads(sns_message)
+            except json.JSONDecodeError as e:
+                print(f"Error parsing SNS message as JSON: {str(e)}")
+                # Handle non-JSON message if expected
+                message = {"raw_message": sns_message}  # Fallback to raw message
+        except (KeyError, IndexError) as e:
+            print(f"Error accessing SNS message: {str(e)}")
+            return {"statusCode": 400, "body": "Invalid SNS event format"}
+    else:
+        print("Direct Budget event received, using raw event.")
+        message = event
 
-    # Assume credentials passed from automation role
+    # Rest of your logic
     try:
-        session = boto3.Session(
-            aws_access_key_id=event["Credentials"]["AccessKeyId"],
-            aws_secret_access_key=event["Credentials"]["SecretAccessKey"],
-            aws_session_token=event["Credentials"]["SessionToken"]
-        )
-    except KeyError as e:
-        return {"statusCode": 400, "body": f"Missing credentials: {str(e)}"}
+        # Extract values
+        account_id = message.get("account_id", "TargetAccountId")
+        budget_name = message.get("budgetName", "BudgetName")
+        threshold = float(message.get("threshold", 80.0))
+        actual_spend = float(message.get("actual_spend"))
+        budget_limit = float(message.get("budgetLimit"))
+        environment = message.get("environment", "dev")
 
-    budgets = session.client("budgets")
+        percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
 
-    try:
-        budget_resp = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
-        budget = budget_resp["Budget"]
+        print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
 
-        budget_limit = float(budget["BudgetLimit"]["Amount"])
-        actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
-        percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0
+        # Trigger SSM Automation if over threshold
+        if percent_used >= threshold:
+            try:
+                response = ssm.start_automation_execution(
+                    DocumentName='budget_update_gha_alert',
+                    Parameters={'TargetAccountId': [account_id]}
+                )
+                print("SSM Automation triggered:", response)
+            except Exception as e:
+                print(f"Failed to start SSM automation: {e}")
 
-        print(f"[INFO] Budget {budget_name}: Used {percentage_used:.2f}% of ${budget_limit:.2f}")
+        subject = f"AWS Budget Alert: {budget_name}"
+        email_body = f"""
+        {account_id} {budget_name}
+        Dear System Owner,
 
-        if percentage_used >= threshold_percent:
-            subject = f"AWS Budget Alert: {budget_name}"
-            email_body = f"""
-Dear System Owner,
+        The actual cost accrued yesterday in "{environment}" for "{budget_name}" has exceeded
+        {percent_used:.1f}% of the monthly budget of ${budget_limit:.2f}.
+        Current actual spend: ${actual_spend:.2f}.
 
-The budget for account {account_id} in environment '{environment}' has exceeded the threshold:
+        Thank you, 
+        OMF CloudOps
 
-Budget Name: {budget_name}
-Budget Limit: ${budget_limit:.2f}
-Actual Spend: ${actual_spend:.2f}
-Percent Used: {percentage_used:.1f}%
+        Budget Name: {budget_name}
+        Account ID: {account_id}
+        Environment: {environment}
+        Budget Limit: ${budget_limit:.2f}
 
-Threshold: {threshold_percent:.1f}%
+        Full Message:
+        {json.dumps(message, indent=2, cls=DecimalEncoder)}
+        """
 
-Thank you,
-OMF CloudOps
-            """
-
-            ses.send_email(
+        try:
+            response = ses.send_email(
                 Source=SENDER_EMAIL,
-                Destination={"ToAddresses": [RECIPIENT_EMAIL]},
+                Destination={'ToAddresses': [RECIPIENT_EMAIL]},
                 Message={
                     'Subject': {'Data': subject},
                     'Body': {
@@ -81,17 +106,11 @@ OMF CloudOps
                     }
                 }
             )
-
-            return {
-                "statusCode": 200,
-                "body": f"Alert email sent for {budget_name} at {percentage_used:.2f}% usage"
-            }
-        else:
-            return {
-                "statusCode": 200,
-                "body": f"Budget {budget_name} at {percentage_used:.2f}% does not exceed threshold"
-            }
-
+            print(f"Email sent! Message ID: {response['MessageId']}")
+            return {"statusCode": 200, "body": "Email sent successfully"}
+        except Exception as e:
+            print(f"Failed to send email: {str(e)}")
+            return {"statusCode": 500, "body": "Failed to send email"}
     except Exception as e:
-        print(f"[ERROR] Failed to process budget alert: {str(e)}")
-        return {"statusCode": 500, "body": str(e)}
+        print(f"Error in main handler logic: {e}")
+        return {"statusCode": 400, "body": "Unexpected processing error"}
