@@ -12,6 +12,7 @@ RECIPIENT_EMAIL = "camleous@yahoo.com"
 
 # Set up boto3 clients
 ses = boto3.client('ses')
+ssm = boto3.client('ssm')
 
 # Allow decimals in JSON
 class DecimalEncoder(json.JSONEncoder):
@@ -53,8 +54,8 @@ def lambda_handler(event, context):
         account_id = message.get("account_id", "TargetAccountId")
         budget_name = message.get("budgetName", "BudgetName")
         threshold = float(message.get("threshold", 80.0))
-        actual_spend = float(message.get("amount", 3.69))
-        budget_limit = float(message.get("budgetLimit", 3))
+        actual_spend = float(message.get("actual_spend") or 0.0)
+        budget_limit = float(message.get("budget_limit") or 1.0)
         environment = message.get("environment", "dev")
 
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
