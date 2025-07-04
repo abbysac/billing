@@ -906,7 +906,7 @@ resource "null_resource" "trigger_ssm_on_csv_change" {
 
   provisioner "local-exec" {
     command = <<EOT
-      echo Debug: AccountId=${each.value.account_id}, BudgetName=${each.value.budget_name}, BudgetAmount=${each.value.budget_amount}, AlertThreshold=${each.value.alert_threshold}
+      echo Debug: TargetAccountId=${each.value.account_id}, BudgetName=${each.value.budget_name}, BudgetAmount=${each.value.budget_amount}, AlertThreshold=${each.value.alert_threshold}
       aws ssm start-automation-execution --document-name "budget_update_gha_alert" --region "${var.aws_region}" --parameters "{\"TargetAccountId\":\"${each.value.account_id}\",\"BudgetName\":\"${each.value.budget_name}\",\"BudgetAmount\":\"${each.value.budget_amount}\",\"AlertThreshold\":\"${each.value.alert_threshold}\"}" || echo SSM execution failed: %ERRORLEVEL%
     EOT
   }
