@@ -810,15 +810,15 @@ def handler(event, context):
                                 })
                             )
                             print(f"SNS published successfully for {budget_name}. MessageId: {sns_response['MessageId']}")
-                            ssm.put_parameter(
-                                Name=param_name,
-                                Value=json.dumps({
-                                    "message_id": sns_response["MessageId"],
-                                    "timestamp": str(datetime.datetime.utcnow())
-                                }),
-                                Type="String",
-                                  Overwrite=True
-                            )
+                            # ssm.put_parameter(
+                            #     Name=param_name,
+                            #     Value=json.dumps({
+                            #         "message_id": sns_response["MessageId"],
+                            #         "timestamp": str(datetime.datetime.utcnow())
+                            #     }),
+                            #     Type="String",
+                            #       Overwrite=True
+                            # )
                     except Exception as sns_error:
                         print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
                         results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
