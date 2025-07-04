@@ -52,7 +52,7 @@ def lambda_handler(event, context):
         account_id = message.get("account_id", "TargetAccountId")
         budget_name = message.get("budgetName", "BudgetName")
         threshold = float(message.get("threshold", 80.0))
-        actual_spend = float(message.get("actual_spend"))
+        actual_spend = float(message.get("amount", 3.69))
         budget_limit = float(message.get("budgetLimit"))
         environment = message.get("environment", "dev")
 
