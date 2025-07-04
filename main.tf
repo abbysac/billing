@@ -739,8 +739,7 @@ def handler(event, context):
 
     print(f"Input event: {json.dumps(event, indent=2)}")
     print(f"Processing account: {account_id}, budgets: {budget_names}, sns_topic: {sns_topic_arn}, message: {message}")
-    
-    #Ensure budget_names is a list
+
     if isinstance(budget_names, str):
         budget_names = [budget_names]
     elif not isinstance(budget_names, list) or not budget_names:
@@ -775,7 +774,7 @@ def handler(event, context):
                 actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
                 percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0
 
-                print(f"Budget: {budget_name}, Limit: $${budget_limit:.2f}, Spend: $${actual_spend:.2f}, Percent Used: $${percentage_used:.2f}%")
+                print(f"Budget: {budget_name}, Limit: $${budget_limit:.2f}, Spend: $${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
 
                 threshold_percent = 80.0
                 alert_trigger = "ACTUAL"
@@ -791,30 +790,9 @@ def handler(event, context):
                 print(f"Alert triggered for {budget_name}: {alert_triggered}")
 
                 if alert_triggered:
-
+                    
                     print(f"Threshold exceeded for {budget_names} ({percentage_used:.2f}%) - publishing to SNS")
-
-                    # try:
-                    #     payload = {
-                    #       "account_id": account_id,
-                    #       "budgetName": budget_name,
-                    #       "actual_spend": actual_spend,
-                    #       "budgetLimit": budget_limit,
-                    #       "threshold": threshold_percent,
-                    #       "environment": "stage",
-                    #       "message": message,
-                    #       # "alert_trigger": alert_trigger
-                    #   }
-
-                    #     print("Publishing SNS payload:")
-                    #     print(json.dumps(payload, indent=2))
-
-                    #     sns_response = sns.publish(
-                    #       TopicArn=sns_topic_arn,
-                    #       Message=json.dumps(payload)
-                    #     )
-
-
+          
                     try:
                             sns_response = sns.publish(
                                 TopicArn=sns_topic_arn,
@@ -823,11 +801,11 @@ def handler(event, context):
                                     "budgetName": budget_name,
                                     "actual_spend": actual_spend,
                                     "budget_limit": budget_limit,
-                                    # "percentage_used": percentage_used,
+                                    "percentage_used": percentage_used,
                                     "alert_trigger": alert_trigger,
                                     "environment": "stage",
-                                    "message":  message, #json.dumps(payload)
-                                    # "Subject": 'Billing Alert',
+                                    "message":  messag, #json.dumps(payload)
+                                    "Subject": 'Budget Alert',
                                     "threshold_percent": threshold_percent
                                 })
                             )
