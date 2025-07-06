@@ -68,6 +68,7 @@ def lambda_handler(event, context):
         print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
 
 def generate_dedupe_key(account_id, budget_name):
+    # return f"{account_id}:{budget_name}"
     # today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     # # SSM Parameter Name pattern
     # return f"/budget-alert/{account_id}/{budget_name}/{today}"  
@@ -83,7 +84,8 @@ def generate_dedupe_key(account_id, budget_name):
                 print(f"[INFO] No prior alert found. Proceeding to send alert for {dedupe_key}")
         except Exception as e:
             print(f"Error occurred: {e}")
-        
+        return f"{account_id}:{budget_name}"
+    
         # Trigger SSM Automation if over threshold
         if percent_used >= threshold:
             try:
