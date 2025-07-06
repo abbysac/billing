@@ -646,6 +646,7 @@ resource "aws_iam_role_policy_attachment" "attach_github_actions_policy" {
 }
 
 
+
 resource "aws_ssm_document" "invoke_central_lambda" {
   name          = "budget_update_gha_alert"
   document_type = "Automation"
@@ -745,7 +746,7 @@ def handler(event, context):
         budget_names = [budget_names]
     elif not isinstance(budget_names, list) or not budget_names:
         results.append({"account_id": account_id, "error": "BudgetName must be a non-empty string or list"})
-          return {"results": results}
+        return {"results": results}
 
     if not all([account_id, budget_names, sns_topic_arn]):
         results.append({"account_id": account_id, "error": "Missing required inputs: AccountId, BudgetName, or SnsTopicArn"})
@@ -817,8 +818,7 @@ def handler(event, context):
                             #         "message_id": sns_response["MessageId"],
                             #         "timestamp": str(datetime.datetime.utcnow())
                             #     }),
-                            #     Type="String",
-                            #       Overwrite=True
+                            #     Type="String"
                             # )
                     except Exception as sns_error:
                         print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
@@ -863,6 +863,7 @@ EOF
     ]
   })
 }
+
 
 
 variable "aws_region" {
