@@ -81,7 +81,9 @@ def generate_dedupe_key(account_id, budget_name):
             # return {"statusCode": 200, "body": "Duplicate alert suppressed"}
         except ssm.exceptions.ParameterNotFound:
                 print(f"[INFO] No prior alert found. Proceeding to send alert for {dedupe_key}")
-
+        except Exception as e:
+            print(f"Error occurred: {e}")
+        
         # Trigger SSM Automation if over threshold
         if percent_used >= threshold:
             try:
