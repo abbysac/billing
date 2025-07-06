@@ -836,9 +836,9 @@ def handler(event, context):
                 #     "alert_trigger": alert_trigger
                 # })
 
-            # except Exception as e:
-            #     print(f"Error processing budget {budget_name}: {str(e)}")
-            #     results.append({"account_id": account_id, "budget_name": budget_name, "error": str(e)})
+            except Exception as e:
+                print(f"Error processing budget {budget_name}: {str(e)}")
+                results.append({"account_id": account_id, "budget_name": budget_name, "error": str(e)})
 
     except Exception as e:
         print(f"General error: {str(e)}")
