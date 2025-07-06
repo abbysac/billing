@@ -69,6 +69,9 @@ def lambda_handler(event, context):
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
 
         print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
+        print(f"[ALERT] Budget threshold exceeded: {account_id} {budget_name}")
+       
+
         
     # try:
     #     dedupe_key = generate_dedupe_key(account_id, budget_name)
