@@ -745,7 +745,7 @@ def handler(event, context):
         budget_names = [budget_names]
     elif not isinstance(budget_names, list) or not budget_names:
         results.append({"account_id": account_id, "error": "BudgetName must be a non-empty string or list"})
-        return {"results": results}
+          return {"results": results}
 
     # if not all([account_id, budget_names, sns_topic_arn]):
     #     results.append({"account_id": account_id, "error": "Missing required inputs: AccountId, BudgetName, or SnsTopicArn"})
