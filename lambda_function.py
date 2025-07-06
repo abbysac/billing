@@ -26,6 +26,7 @@ class DecimalEncoder(json.JSONEncoder):
 
 
 
+
 def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
 
@@ -66,6 +67,21 @@ def lambda_handler(event, context):
 
         print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
 
+# def generate_dedupe_key(account_id, budget_name):
+#     today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+#         # SSM Parameter Name pattern
+#     return f"/budget-alert/{account_id}/{budget_name}/{today}"  
+# try:
+#         dedupe_key = generate_dedupe_key(account_id, budget_name)
+
+#                 # Check if alert was already sent today
+#         try:
+#             ssm.get_parameter(Name=dedupe_key)
+#             print(f"[INFO] Duplicate alert suppressed for {dedupe_key}")
+#             return {"statusCode": 200, "body": "Duplicate alert suppressed"}
+#         except ssm.exceptions.ParameterNotFound:
+#             print(f"[INFO] No prior alert found. Proceeding to send alert for {dedupe_key}")
+
         # Trigger SSM Automation if over threshold
         if percent_used >= threshold:
             try:
@@ -76,22 +92,6 @@ def lambda_handler(event, context):
                 print("SSM Automation triggered:", response)
             except Exception as e:
                 print(f"Failed to start SSM automation: {e}")
-def generate_dedupe_key(account_id, budget_name):      
-#     today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
-#             # SSM Parameter Name pattern
-#     return f"/budget-alert/{account_id}/{budget_name}/{today}"
-
-  
-    try:
-        dedupe_key = generate_dedupe_key(account_id, budget_name)
-
-            # Check if alert was already sent today
-        try:
-            ssm.get_parameter(Name=dedupe_key)
-            print(f"[INFO] Duplicate alert suppressed for {dedupe_key}")
-            return {"statusCode": 200, "body": "Duplicate alert suppressed"}
-        except ssm.exceptions.ParameterNotFound:
-            print(f"[INFO] No prior alert found. Proceeding to send alert for {dedupe_key}")
 
 
         subject = f"AWS Budget Alert: {budget_name}"
