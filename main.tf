@@ -840,9 +840,9 @@ def handler(event, context):
                 print(f"Error processing budget {budget_name}: {str(e)}")
                 results.append({"account_id": account_id, "budget_name": budget_name, "error": str(e)})
 
-    except Exception as e:
-        print(f"General error: {str(e)}")
-        results.append({"account_id": account_id, "error": str(e)})
+    # except Exception as e:
+    #     print(f"General error: {str(e)}")
+    #     results.append({"account_id": account_id, "error": str(e)})
 
     print(f"Final results: {json.dumps(results, indent=2)}")
     return {"results": results}
