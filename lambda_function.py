@@ -71,8 +71,8 @@ def lambda_handler(event, context):
 #         today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
 #             # SSM Parameter Name pattern
 #         return f"/budget-alert/{account_id}/{budget_name}/{today}"  
-    try:
-        dedupe_key = generate_dedupe_key(account_id, budget_name)
+    # try:
+    #     dedupe_key = generate_dedupe_key(account_id, budget_name)
 
         # Check if alert was already sent today
         try:
