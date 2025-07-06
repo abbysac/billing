@@ -67,6 +67,20 @@ def lambda_handler(event, context):
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
 
         print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
+        
+    # try:
+    #     dedupe_key = generate_dedupe_key(account_id, budget_name)
+
+            #Check if alert was already sent today
+        # try:
+        #     ssm.get_parameter(Name=dedupe_key)
+        #     print(f"[INFO] Duplicate alert suppressed for {dedupe_key}")
+        #     # return {"statusCode": 200, "body": "Duplicate alert suppressed"}
+        # except ssm.exceptions.ParameterNotFound:
+        #         print(f"[INFO] No prior alert found. Proceeding to send alert for {dedupe_key}")
+        # except Exception as e:
+        #     print(f"Error occurred: {e}")
+        # return f"{account_id}:{budget_name}"
 
 # def generate_dedupe_key(account_id, budget_name):
     # return f"{account_id}:{budget_name}"
@@ -74,19 +88,7 @@ def lambda_handler(event, context):
     
     # # SSM Parameter Name pattern
     # return f"/budget-alert/{account_id}/{budget_name}/{today}"  
-    try:
-        dedupe_key = generate_dedupe_key(account_id, budget_name)
-
-            #Check if alert was already sent today
-        try:
-            ssm.get_parameter(Name=dedupe_key)
-            print(f"[INFO] Duplicate alert suppressed for {dedupe_key}")
-            # return {"statusCode": 200, "body": "Duplicate alert suppressed"}
-        except ssm.exceptions.ParameterNotFound:
-                print(f"[INFO] No prior alert found. Proceeding to send alert for {dedupe_key}")
-        except Exception as e:
-            print(f"Error occurred: {e}")
-        return f"{account_id}:{budget_name}"
+    
     
         # Trigger SSM Automation if over threshold
         if percent_used >= threshold:
