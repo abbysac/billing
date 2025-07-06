@@ -62,7 +62,7 @@ def lambda_handler(event, context):
         actual_spend = float(message.get("actual_spend") or 0.0)
         budget_limit = float(message.get("budget_limit") or 1.0)
         environment = message.get("environment", "dev")
-        generate_dedupe_key = message.get(account_id, budget_name)
+        # generate_dedupe_key = message.get(account_id, budget_name)
         
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
 
