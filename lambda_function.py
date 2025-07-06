@@ -62,14 +62,16 @@ def lambda_handler(event, context):
         actual_spend = float(message.get("actual_spend") or 0.0)
         budget_limit = float(message.get("budget_limit") or 1.0)
         environment = message.get("environment", "dev")
-
+        generate_dedupe_key = message.get(account_id, budget_name)
+        
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
 
         print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
 
-def generate_dedupe_key(account_id, budget_name):
+# def generate_dedupe_key(account_id, budget_name):
     # return f"{account_id}:{budget_name}"
     # today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+    
     # # SSM Parameter Name pattern
     # return f"/budget-alert/{account_id}/{budget_name}/{today}"  
     try:
