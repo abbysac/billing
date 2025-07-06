@@ -7,6 +7,7 @@
 import boto3
 import json
 import decimal
+import hashlib
 
 # Email Config
 SENDER_EMAIL = "abbysac@gmail.com"
@@ -22,6 +23,7 @@ class DecimalEncoder(json.JSONEncoder):
         if isinstance(obj, decimal.Decimal):
             return float(obj)
         return super().default(obj)
+
 
 
 def lambda_handler(event, context):
@@ -74,6 +76,23 @@ def lambda_handler(event, context):
                 print("SSM Automation triggered:", response)
             except Exception as e:
                 print(f"Failed to start SSM automation: {e}")
+def generate_dedupe_key(account_id, budget_name):      
+#     today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+#             # SSM Parameter Name pattern
+#     return f"/budget-alert/{account_id}/{budget_name}/{today}"
+
+  
+    try:
+        dedupe_key = generate_dedupe_key(account_id, budget_name)
+
+            # Check if alert was already sent today
+        try:
+            ssm.get_parameter(Name=dedupe_key)
+            print(f"[INFO] Duplicate alert suppressed for {dedupe_key}")
+            return {"statusCode": 200, "body": "Duplicate alert suppressed"}
+        except ssm.exceptions.ParameterNotFound:
+            print(f"[INFO] No prior alert found. Proceeding to send alert for {dedupe_key}")
+
 
         subject = f"AWS Budget Alert: {budget_name}"
         email_body = f"""
