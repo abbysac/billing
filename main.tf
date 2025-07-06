@@ -820,10 +820,10 @@ def handler(event, context):
                             #     }),
                             #     Type="String"
                             # )
-                    # except Exception as sns_error:
-                    #     print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
-                    #     results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
-                    #     continue
+                    except Exception as sns_error:
+                        print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
+                        results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
+                        continue
 
                 # results.append({
                 #     "account_id": account_id,
