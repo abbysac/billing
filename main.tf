@@ -747,9 +747,9 @@ def handler(event, context):
         results.append({"account_id": account_id, "error": "BudgetName must be a non-empty string or list"})
           return {"results": results}
 
-    # if not all([account_id, budget_names, sns_topic_arn]):
-    #     results.append({"account_id": account_id, "error": "Missing required inputs: AccountId, BudgetName, or SnsTopicArn"})
-    #     return {"results": results}
+    if not all([account_id, budget_names, sns_topic_arn]):
+        results.append({"account_id": account_id, "error": "Missing required inputs: AccountId, BudgetName, or SnsTopicArn"})
+        return {"results": results}
 
     try:
         session = boto3.Session(
@@ -825,27 +825,27 @@ def handler(event, context):
                         results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
                         continue
 
-    #             results.append({
-    #                 "account_id": account_id,
-    #                 "budget_name": budget_name,
-    #                 "budget_limit": budget_limit,
-    #                 "actual_spend": actual_spend,
-    #                 "percent_used": percentage_used,
-    #                 "alert_triggered": alert_triggered,
-    #                 "threshold_percent": threshold_percent,
-    #                 "alert_trigger": alert_trigger
-    #             })
+                results.append({
+                    "account_id": account_id,
+                    "budget_name": budget_name,
+                    "budget_limit": budget_limit,
+                    "actual_spend": actual_spend,
+                    "percent_used": percentage_used,
+                    "alert_triggered": alert_triggered,
+                    "threshold_percent": threshold_percent,
+                    "alert_trigger": alert_trigger
+                })
 
-    #         except Exception as e:
-    #             print(f"Error processing budget {budget_name}: {str(e)}")
-    #             results.append({"account_id": account_id, "budget_name": budget_name, "error": str(e)})
+            except Exception as e:
+                print(f"Error processing budget {budget_name}: {str(e)}")
+                results.append({"account_id": account_id, "budget_name": budget_name, "error": str(e)})
 
-    # except Exception as e:
-    #     print(f"General error: {str(e)}")
-    #     results.append({"account_id": account_id, "error": str(e)})
+    except Exception as e:
+        print(f"General error: {str(e)}")
+        results.append({"account_id": account_id, "error": str(e)})
 
-    # print(f"Final results: {json.dumps(results, indent=2)}")
-    # return {"results": results}
+    print(f"Final results: {json.dumps(results, indent=2)}")
+    return {"results": results}
 EOF
           InputPayload = {
             AccountId   = "{{ TargetAccountId }}"
