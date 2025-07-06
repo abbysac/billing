@@ -747,9 +747,9 @@ def handler(event, context):
         results.append({"account_id": account_id, "error": "BudgetName must be a non-empty string or list"})
         return {"results": results}
 
-    if not all([account_id, budget_names, sns_topic_arn]):
-        results.append({"account_id": account_id, "error": "Missing required inputs: AccountId, BudgetName, or SnsTopicArn"})
-        return {"results": results}
+    # if not all([account_id, budget_names, sns_topic_arn]):
+    #     results.append({"account_id": account_id, "error": "Missing required inputs: AccountId, BudgetName, or SnsTopicArn"})
+    #     return {"results": results}
 
     try:
         session = boto3.Session(
