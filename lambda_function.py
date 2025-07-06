@@ -75,12 +75,12 @@ def lambda_handler(event, context):
     #     dedupe_key = generate_dedupe_key(account_id, budget_name)
 
         # Check if alert was already sent today
-        try:
-            ssm.get_parameter(Name=dedupe_key)
-            print(f"[INFO] Duplicate alert suppressed for {dedupe_key}")
-            return {"statusCode": 200, "body": "Duplicate alert suppressed"}
-        except ssm.exceptions.ParameterNotFound:
-            print(f"[INFO] No prior alert found. Proceeding to send alert for {dedupe_key}")
+        # try:
+        #     ssm.get_parameter(Name=dedupe_key)
+        #     print(f"[INFO] Duplicate alert suppressed for {dedupe_key}")
+        #     return {"statusCode": 200, "body": "Duplicate alert suppressed"}
+        # except ssm.exceptions.ParameterNotFound:
+        #     print(f"[INFO] No prior alert found. Proceeding to send alert for {dedupe_key}")
 
         # Trigger SSM Automation if over threshold
         if percent_used >= threshold:
