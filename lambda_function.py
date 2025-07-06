@@ -84,21 +84,21 @@ def lambda_handler(event, context):
         #     print(f"Error occurred: {e}")
         # return f"{account_id}:{budget_name}"
     
-    for attempt in range(5):
-        try:
-            response = ssm.start_automation_execution(
-                DocumentName='budget_update_gha_alert',
-                Parameters={'TargetAccountId': [account_id]}
-            )
-            print("SSM Automation triggered:", response)
-            break
-        except ssm.exceptions.ThrottlingException as e:
-            wait = 2 ** attempt + random.uniform(0, 1)
-            print(f"Throttled, retrying in {wait:.2f} seconds...")
-            time.sleep(wait)
-        except Exception as e:
-            print(f"Failed to start SSM automation: {e}")
-            break
+    # for attempt in range(5):
+    #     try:
+    #         response = ssm.start_automation_execution(
+    #             DocumentName='budget_update_gha_alert',
+    #             Parameters={'TargetAccountId': [account_id]}
+    #         )
+    #         print("SSM Automation triggered:", response)
+    #         break
+    #     except ssm.exceptions.ThrottlingException as e:
+    #         wait = 2 ** attempt + random.uniform(0, 1)
+    #         print(f"Throttled, retrying in {wait:.2f} seconds...")
+    #         time.sleep(wait)
+    #     except Exception as e:
+    #         print(f"Failed to start SSM automation: {e}")
+    #         break
 
 # def generate_dedupe_key(account_id, budget_name):
     # return f"{account_id}:{budget_name}"
