@@ -12,8 +12,8 @@ import time
 import random
 
 # Email Config
-SENDER_EMAIL = "abbysac@gmail.com"
-RECIPIENT_EMAIL = "camleous@yahoo.com"
+SENDER_EMAIL = "camleous@yahoo.com" 
+RECIPIENT_EMAIL = "abbysac@gmail.com"
 
 # Set up boto3 clients
 ses = boto3.client('ses')
