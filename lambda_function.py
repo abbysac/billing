@@ -11,6 +11,7 @@ import hashlib
 import time
 import random
 
+
 # Email Config
 SENDER_EMAIL = "abbysac@gmail.com"
 RECIPIENT_EMAIL = "camleous@yahoo.com"
@@ -18,6 +19,7 @@ RECIPIENT_EMAIL = "camleous@yahoo.com"
 # Set up boto3 clients
 ses = boto3.client('ses')
 ssm = boto3.client('ssm')
+budgets = boto3.client('budgets')
 
 # Allow decimals in JSON
 class DecimalEncoder(json.JSONEncoder):
@@ -71,6 +73,20 @@ def lambda_handler(event, context):
         print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
         print(f"[ALERT] Budget threshold exceeded: {account_id} {budget_name}")
        
+       # Dynamic budget fetch fallback
+        actual_spend = message.get("actual_spend")
+        budget_limit = message.get("budgetLimit")
+
+        if actual_spend is None or budget_limit is None:
+            print("[INFO] Budget values missing in SNS — fetching dynamically from Budgets API")
+            response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
+            budget = response["Budget"]
+            budget_limit = float(budget["BudgetLimit"]["Amount"])
+            actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
+
+            percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
+            print(f"[INFO] Budget: {budget_name} - {percent_used:.2f}% used")
+
 
         
     # try:
