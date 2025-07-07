@@ -71,7 +71,7 @@ def lambda_handler(event, context):
                 response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
                 actual_spend = float(event['messages'][0]['CalculatedSpend']['ActualSpend']['Amount'])
                 budget_limit = float(event['messages'][0]['BudgetLimit']['Amount'])
-                percent_used = (actual_spend / budget_limit) * 100
+                # percent_used = (actual_spend / budget_limit) * 100
 
             percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
             print(f"[INFO] Budget: {budget_name} - {percent_used:.2f}% used")
