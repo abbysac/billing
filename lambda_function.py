@@ -69,9 +69,9 @@ def lambda_handler(event, context):
             if actual_spend is None or budget_limit is None:
                 print("[INFO] Budget values missing in SNS — fetching dynamically from Budgets API")
                 response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
-                budget = response["Budget"]
-                budget_limit = float(budget["BudgetLimit"]["Amount"])
-                actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
+                actual_spend = float(event['messages'][0]['CalculatedSpend']['ActualSpend']['Amount'])
+                budget_limit = float(event['messages'][0]['BudgetLimit']['Amount'])
+                percent_used = (actual_spend / budget_limit) * 100
 
             percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
             print(f"[INFO] Budget: {budget_name} - {percent_used:.2f}% used")
