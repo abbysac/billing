@@ -21,39 +21,36 @@ class DecimalEncoder(json.JSONEncoder):
             return float(obj)
         return super().default(obj)
 
-
 def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
 
-    # Extract SNS message
+    # Parse SNS message if applicable
     if "Records" in event and isinstance(event["Records"], list) and event["Records"]:
         try:
             sns_message = event["Records"][0]["Sns"]["Message"]
             print(f"Raw SNS Message: {sns_message}")
-            if not isinstance(sns_message, str) or not sns_message.strip():
-                return {"statusCode": 400, "body": "Invalid SNS message format"}
-            try:
-                message = json.loads(sns_message)
-            except json.JSONDecodeError as e:
-                print(f"JSON parse error: {str(e)}")
-                message = {"raw_message": sns_message}
-        except (KeyError, IndexError) as e:
-            print(f"Error accessing SNS message: {str(e)}")
+            message = json.loads(sns_message)
+        except Exception as e:
+            print(f"[ERROR] Could not parse SNS message: {e}")
             return {"statusCode": 400, "body": "Invalid SNS event format"}
     else:
         print("Direct Budget event received.")
         message = event
 
     try:
-        # --- Extract values safely ---
-        account_id = message.get("account_id", "TargetAccountId")
-        budget_name = message.get("budgetName", "BudgetName")
+        # Normalize keys
+        account_id = message.get("account_id") or message.get("account_Id")
+        budget_name = message.get("budgetName")
         threshold = float(message.get("threshold", 80.0))
         actual_spend = message.get("actual_spend")
         budget_limit = message.get("budget_limit")
         environment = message.get("environment", "dev")
 
-        # --- If missing values, fallback to Budgets API ---
+        if not account_id or not budget_name:
+            print(f"[ERROR] Missing account_id or budget_name")
+            return {"statusCode": 400, "body": "Missing required fields: account_id or budget_name"}
+
+        # Fallback to Budgets API if needed
         if actual_spend is None or budget_limit is None:
             print("[INFO] Fetching budget values from AWS Budgets API")
             response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
@@ -61,49 +58,49 @@ def lambda_handler(event, context):
             budget_limit = float(budget["BudgetLimit"]["Amount"])
             actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
 
-        # --- Calculate usage ---
+        # Calculate usage
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
         print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
 
-        # --- Compose Email ---
-        subject = f"AWS Budget Alert: {budget_name}"
-        email_body = f"""
+        # Compose email
+        subject = f"AWS Budget Alert: {budget_name} ({account_id})"
+        email_body = f"""\
 Account ID: {account_id}
 Budget Name: {budget_name}
 
 Dear System Owner,
 
-The actual cost accrued yesterday in "{environment}" for "{budget_name}" has exceeded
-{percent_used:.1f}% of the monthly budget of ${budget_limit:.2f}.
-Current actual spend: ${actual_spend:.2f}.
+The actual cost accrued in environment "{environment}" for budget "{budget_name}" has reached:
+  - Spend: ${actual_spend:.2f}
+  - Budget Limit: ${budget_limit:.2f}
+  - Usage: {percent_used:.1f}% (Threshold: {threshold:.1f}%)
 
-Thank you, 
+If this trend continues, the budget may be exceeded for this period.
+
+Thank you,
 OMF CloudOps
 
-Full Message:
+---
+Full Event Message:
 {json.dumps(message, indent=2, cls=DecimalEncoder)}
 """
 
-        # --- Send Email ---
-        try:
-            response = ses.send_email(
-                Source=SENDER_EMAIL,
-                Destination={'ToAddresses': [RECIPIENT_EMAIL]},
-                Message={
-                    'Subject': {'Data': subject},
-                    'Body': {
-                        'Text': {
-                            'Data': email_body,
-                            'Charset': 'UTF-8'
-                        }
+        # Send Email
+        response = ses.send_email(
+            Source=SENDER_EMAIL,
+            Destination={'ToAddresses': [RECIPIENT_EMAIL]},
+            Message={
+                'Subject': {'Data': subject},
+                'Body': {
+                    'Text': {
+                        'Data': email_body,
+                        'Charset': 'UTF-8'
                     }
                 }
-            )
-            print(f"[SUCCESS] Email sent! Message ID: {response['MessageId']}")
-            return {"statusCode": 200, "body": "Email sent successfully"}
-        except Exception as e:
-            print(f"[ERROR] Failed to send email: {str(e)}")
-            return {"statusCode": 500, "body": "Failed to send email"}
+            }
+        )
+        print(f"[SUCCESS] Email sent! Message ID: {response['MessageId']}")
+        return {"statusCode": 200, "body": "Email sent successfully"}
 
     except Exception as e:
         print(f"[ERROR] Handler logic failed: {str(e)}")
