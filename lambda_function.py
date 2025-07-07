@@ -87,6 +87,10 @@ def lambda_handler(event, context):
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
         print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
 
+        print("Message contents:", json.dumps(message, indent=2))
+        print("Message keys received:", list(message.keys()))
+
+        
         # Compose email
         subject = f"AWS Budget Alert: {budget_name} ({account_id})"
         email_body = f"""\
