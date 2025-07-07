@@ -262,7 +262,8 @@ resource "aws_iam_policy" "budgets_view_policy" {
           "lambda:GetFunctionCodeSigningConfig",
           "SNS:GetSubscriptionAttributes",
           "budgets:ViewBudget",
-          "iam:ListPolicyVersions"
+          "iam:ListPolicyVersions",
+          "iam:DeletePolicyVersion"
 
 
 
