@@ -148,6 +148,14 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
       {
         "Effect" : "Allow",
         "Action" : [
+          "iam:ListPolicyVersions"
+        ],
+        "Resource" : "arn:aws:iam::224761220970:policy/budgets-view-policy"
+      },
+
+      {
+        "Effect" : "Allow",
+        "Action" : [
           "iam:GetPolicy",
           "iam:GetPolicyVersion",
           "iam:GetRole",
