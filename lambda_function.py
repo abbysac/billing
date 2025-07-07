@@ -1,10 +1,9 @@
-
-# --- SSM Automation Document (SSM Step) Sample Invocation ---
-# (Terraform or JSON-based SSM Document should call this Lambda as a step)
-
 import boto3
 import json
 import decimal
+import time
+import random
+import datetime
 
 # Email Config
 SENDER_EMAIL = "abbysac@gmail.com"
@@ -31,70 +30,61 @@ def lambda_handler(event, context):
         try:
             sns_message = event["Records"][0]["Sns"]["Message"]
             print(f"Raw SNS Message: {sns_message}")
-            # Check if sns_message is a string and not empty
             if not isinstance(sns_message, str) or not sns_message.strip():
-                print("Error: SNS message is empty or not a string")
                 return {"statusCode": 400, "body": "Invalid SNS message format"}
-            # Attempt to parse JSON
             try:
                 message = json.loads(sns_message)
             except json.JSONDecodeError as e:
-                print(f"Error parsing SNS message as JSON: {str(e)}")
-                # Handle non-JSON message if expected
-                message = {"raw_message": sns_message}  # Fallback to raw message
+                print(f"JSON parse error: {str(e)}")
+                message = {"raw_message": sns_message}
         except (KeyError, IndexError) as e:
             print(f"Error accessing SNS message: {str(e)}")
             return {"statusCode": 400, "body": "Invalid SNS event format"}
     else:
-        print("Direct Budget event received, using raw event.")
+        print("Direct Budget event received.")
         message = event
 
-    # Rest of your logic
     try:
-        # Extract values
+        # --- Extract values safely ---
         account_id = message.get("account_id", "TargetAccountId")
         budget_name = message.get("budgetName", "BudgetName")
         threshold = float(message.get("threshold", 80.0))
-        actual_spend = float(message.get("amount", 3.69))
-        budget_limit = float(message.get("budgetLimit", 3))
+        actual_spend = message.get("actual_spend")
+        budget_limit = message.get("budget_limit")
         environment = message.get("environment", "dev")
 
-        percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
+        # --- If missing values, fallback to Budgets API ---
+        if actual_spend is None or budget_limit is None:
+            print("[INFO] Fetching budget values from AWS Budgets API")
+            response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
+            budget = response["Budget"]
+            budget_limit = float(budget["BudgetLimit"]["Amount"])
+            actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
 
+        # --- Calculate usage ---
+        percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
         print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
 
-        # Trigger SSM Automation if over threshold
-        if percent_used >= threshold:
-            try:
-                response = ssm.start_automation_execution(
-                    DocumentName='budget_update_gha_alert',
-                    Parameters={'TargetAccountId': [account_id]}
-                )
-                print("SSM Automation triggered:", response)
-            except Exception as e:
-                print(f"Failed to start SSM automation: {e}")
-
+        # --- Compose Email ---
         subject = f"AWS Budget Alert: {budget_name}"
         email_body = f"""
-        {account_id} {budget_name}
-        Dear System Owner,
+Account ID: {account_id}
+Budget Name: {budget_name}
 
-        The actual cost accrued yesterday in "{environment}" for "{budget_name}" has exceeded
-        {percent_used:.1f}% of the monthly budget of ${budget_limit:.2f}.
-        Current actual spend: ${actual_spend:.2f}.
+Dear System Owner,
 
-        Thank you, 
-        OMF CloudOps
+The actual cost accrued yesterday in "{environment}" for "{budget_name}" has exceeded
+{percent_used:.1f}% of the monthly budget of ${budget_limit:.2f}.
+Current actual spend: ${actual_spend:.2f}.
 
-        Budget Name: {budget_name}
-        Account ID: {account_id}
-        Environment: {environment}
-        Budget Limit: ${budget_limit:.2f}
+Thank you, 
+OMF CloudOps
 
-        Full Message:
-        {json.dumps(message, indent=2, cls=DecimalEncoder)}
-        """
+Full Message:
+{json.dumps(message, indent=2, cls=DecimalEncoder)}
+"""
 
+        # --- Send Email ---
         try:
             response = ses.send_email(
                 Source=SENDER_EMAIL,
@@ -109,11 +99,12 @@ def lambda_handler(event, context):
                     }
                 }
             )
-            print(f"Email sent! Message ID: {response['MessageId']}")
+            print(f"[SUCCESS] Email sent! Message ID: {response['MessageId']}")
             return {"statusCode": 200, "body": "Email sent successfully"}
         except Exception as e:
-            print(f"Failed to send email: {str(e)}")
+            print(f"[ERROR] Failed to send email: {str(e)}")
             return {"statusCode": 500, "body": "Failed to send email"}
+
     except Exception as e:
-        print(f"Error in main handler logic: {e}")
+        print(f"[ERROR] Handler logic failed: {str(e)}")
         return {"statusCode": 400, "body": "Unexpected processing error"}
