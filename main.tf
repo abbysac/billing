@@ -150,6 +150,7 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
         "Action" : [
           "iam:ListPolicyVersions",
           "iam:DeletePolicyVersion",
+          "iam:CreatePolicyVersion",
           "iam:CreatePolicyVersion"
         ],
         "Resource" : "arn:aws:iam::224761220970:policy/budgets-view-policy"
