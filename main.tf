@@ -803,7 +803,7 @@ def handler(event, context):
                                     "budgetName": budget_name,
                                     "actual_spend": actual_spend,
                                     "budget_limit": budget_limit,
-                                    "percentage_used": percentage_used,
+                                    "percent_used": percentage_used,
                                     "alert_trigger": alert_trigger,
                                     "environment": "stage",
                                     "message":  message, #json.dumps(payload)
