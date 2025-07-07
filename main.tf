@@ -251,7 +251,9 @@ resource "aws_iam_policy" "budgets_view_policy" {
           "iam:ListAttachedRolePolicies",
           "iam:ListEntitiesForPolicy",
           "lambda:GetFunctionCodeSigningConfig",
-          "SNS:GetSubscriptionAttributes"
+          "SNS:GetSubscriptionAttributes",
+          "budgets:ViewBudget"
+
 
 
 
@@ -259,7 +261,8 @@ resource "aws_iam_policy" "budgets_view_policy" {
         Resource = [
 
           "arn:aws:iam::224761220970:role/GitHubActionsOIDCRole",
-          "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com"
+          "arn:aws:iam::224761220970:oidc-provider/token.actions.githubusercontent.com",
+          "arn:aws:budgets::224761220970:budget/*"
 
         ]
 
