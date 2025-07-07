@@ -1,20 +1,27 @@
 
-import json
+# --- SSM Automation Document (SSM Step) Sample Invocation ---
+# (Terraform or JSON-based SSM Document should call this Lambda as a step)
+
 import boto3
+import json
 import decimal
 
+# Email Config
+SENDER_EMAIL = "abbysac@gmail.com"
+RECIPIENT_EMAIL = "camleous@yahoo.com"
+
+# Set up boto3 clients
 ses = boto3.client('ses')
 ssm = boto3.client('ssm')
 budgets = boto3.client('budgets')
 
-SENDER_EMAIL = "abbysac@gmail.com"
-RECIPIENT_EMAIL = "camleous@yahoo.com"
-
+# Allow decimals in JSON
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, decimal.Decimal):
             return float(obj)
         return super().default(obj)
+
 
 def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
@@ -41,85 +48,72 @@ def lambda_handler(event, context):
     else:
         print("Direct Budget event received, using raw event.")
         message = event
-        
-        #         print(f"Raw SNS Message: {sns_message}")
-        #         if not sns_message or not isinstance(sns_message, str):
-        #             return {"statusCode": 400, "body": "Empty or invalid SNS message"}
-        #         message = json.loads(sns_message)
-        # except Exception as e:
-        #     print(f"[ERROR] Failed to parse SNS message: {e}")
-        #     return {"statusCode": 400, "body": f"Invalid SNS format: {str(e)}"}
 
-        # # ✅ Prevent recursion
-        # if message.get("source") == "automation":
-        #     print("[INFO] Skipping alert triggered by automation to avoid recursion.")
-        #     return {"statusCode": 200, "body": "Ignored automation message"}
-       
-        # Extract Budget Details
-        try:
-            account_id = message.get("account_id")
-            budget_name = message.get("budgetName")
-            threshold = float(message.get("threshold", 80.0))
-            environment = message.get("environment", "dev")
+    # Rest of your logic
+    try:
+        # Extract values
+        account_id = message.get("account_id", "TargetAccountId")
+        budget_name = message.get("budgetName", "BudgetName")
+        threshold = float(message.get("threshold", 80.0))
+        actual_spend = float(message.get("amount", 3.69))
+        budget_limit = float(message.get("budgetLimit", 3))
+        environment = message.get("environment", "dev")
 
-            # Dynamic budget fetch fallback
-            actual_spend = message.get("actual_spend")
-            budget_limit = message.get("budgetLimit")
+        percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
 
-            if actual_spend is None or budget_limit is None:
-                print("[INFO] Budget values missing in SNS — fetching dynamically from Budgets API")
-                response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
-                actual_spend = float(event['messages'][0]['CalculatedSpend']['ActualSpend']['Amount'])
-                budget_limit = float(event['messages'][0]['BudgetLimit']['Amount'])
-                # percent_used = (actual_spend / budget_limit) * 100
+        print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
 
-            percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
-            print(f"[INFO] Budget: {budget_name} - {percent_used:.2f}% used")
-
-            if percent_used >= threshold:
+        # Trigger SSM Automation if over threshold
+        if percent_used >= threshold:
+            try:
                 response = ssm.start_automation_execution(
                     DocumentName='budget_update_gha_alert',
                     Parameters={'TargetAccountId': [account_id]}
                 )
                 print("SSM Automation triggered:", response)
-        except Exception as e:
-            print(f"Failed to start SSM Automation: {e}")
-            
-            subject = f"AWS Budget Alert: {budget_name}"
-            
-            email_body = f"""
-{account_id} - {budget_name}
-Dear System Owner,
+            except Exception as e:
+                print(f"Failed to start SSM automation: {e}")
 
-The actual cost accrued yesterday in "{environment}" for "{budget_name}" has exceeded
-{percent_used:.1f}% of the monthly budget of ${budget_limit:.2f}.
-Current actual spend: ${actual_spend:.2f}.
+        subject = f"AWS Budget Alert: {budget_name}"
+        email_body = f"""
+        {account_id} {budget_name}
+        Dear System Owner,
 
-Thank you, 
-OMF CloudOps
+        The actual cost accrued yesterday in "{environment}" for "{budget_name}" has exceeded
+        {percent_used:.1f}% of the monthly budget of ${budget_limit:.2f}.
+        Current actual spend: ${actual_spend:.2f}.
 
-Budget Name: {budget_name}
-Account ID: {account_id}
-Environment: {environment}
-Budget Limit: ${budget_limit:.2f}
+        Thank you, 
+        OMF CloudOps
 
-Full Message:
-{json.dumps(message, indent=2, cls=DecimalEncoder)}
-"""
+        Budget Name: {budget_name}
+        Account ID: {account_id}
+        Environment: {environment}
+        Budget Limit: ${budget_limit:.2f}
 
-            ses.send_email(
+        Full Message:
+        {json.dumps(message, indent=2, cls=DecimalEncoder)}
+        """
+
+        try:
+            response = ses.send_email(
                 Source=SENDER_EMAIL,
                 Destination={'ToAddresses': [RECIPIENT_EMAIL]},
                 Message={
                     'Subject': {'Data': subject},
                     'Body': {
-                        'Text': {'Data': email_body,} #'Charset': 'UTF-8'}
+                        'Text': {
+                            'Data': email_body,
+                            'Charset': 'UTF-8'
+                        }
                     }
                 }
             )
-            print("Email sent.")
-            return {"statusCode": 200, "body": "Alert processed and email sent."}
-
+            print(f"Email sent! Message ID: {response['MessageId']}")
+            return {"statusCode": 200, "body": "Email sent successfully"}
         except Exception as e:
-                print(f"Error in handler: {str(e)}")
-                return {"statusCode": 500, "body": f"Internal error: {str(e)}"}
+            print(f"Failed to send email: {str(e)}")
+            return {"statusCode": 500, "body": "Failed to send email"}
+    except Exception as e:
+        print(f"Error in main handler logic: {e}")
+        return {"statusCode": 400, "body": "Unexpected processing error"}
