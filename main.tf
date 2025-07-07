@@ -212,8 +212,8 @@ resource "aws_iam_role_policy" "github_oidc_policy" {
           "iam:GetRole",
           "ssm:CreateDocument",
           "lambda:UpdateFunctionConfiguration",
-          "ssm:StartAutomationExecution",
-          "iam:ListPolicyVersions"
+          "ssm:StartAutomationExecution"
+
 
 
 
@@ -253,8 +253,8 @@ resource "aws_iam_policy" "budgets_view_policy" {
           "iam:ListEntitiesForPolicy",
           "lambda:GetFunctionCodeSigningConfig",
           "SNS:GetSubscriptionAttributes",
-          "budgets:ViewBudget",
-          "iam:ListPolicyVersions"
+          "budgets:ViewBudget"
+
 
 
 
