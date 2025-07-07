@@ -58,8 +58,8 @@ def lambda_handler(event, context):
     # Rest of your logic
     try:
         # Extract values
-        account_id = message.get("account_id", "TargetAccountId")
-        budget_name = message.get("BudgetName")
+        account_id = message.get("AccountId")
+        budget_name = message.get("BudgetName", "budget_name")
         threshold = float(message.get("threshold", 80.0))
         actual_spend = float(message.get("actual_spend") or 0.0)
         budget_limit = float(message.get("budget_limit") or 1.0)
