@@ -339,7 +339,8 @@ resource "aws_iam_policy" "policy" {
           "ses:SendEmail",
           "Organizations:ListRoots",
           "iam:PutRolePolicy",
-          "ssm:StartAutomationExecution"
+          "ssm:StartAutomationExecution",
+          "budgets:ViewBudget"
 
 
         ],
