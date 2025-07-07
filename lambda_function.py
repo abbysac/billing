@@ -24,18 +24,43 @@ class DecimalEncoder(json.JSONEncoder):
 def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
 
-    # Parse SNS message if applicable
+    # Extract SNS message
     if "Records" in event and isinstance(event["Records"], list) and event["Records"]:
         try:
             sns_message = event["Records"][0]["Sns"]["Message"]
             print(f"Raw SNS Message: {sns_message}")
-            message = json.loads(sns_message)
-        except Exception as e:
-            print(f"[ERROR] Could not parse SNS message: {e}")
+            # Check if sns_message is a string and not empty
+            if not isinstance(sns_message, str) or not sns_message.strip():
+                print("Error: SNS message is empty or not a string")
+                return {"statusCode": 400, "body": "Invalid SNS message format"}
+            # Attempt to parse JSON
+            try:
+                message = json.loads(sns_message)
+            except json.JSONDecodeError as e:
+                print(f"Error parsing SNS message as JSON: {str(e)}")
+                # Handle non-JSON message if expected
+                message = {"raw_message": sns_message}  # Fallback to raw message
+        except (KeyError, IndexError) as e:
+            print(f"Error accessing SNS message: {str(e)}")
             return {"statusCode": 400, "body": "Invalid SNS event format"}
     else:
-        print("Direct Budget event received.")
+        print("Direct Budget event received, using raw event.")
         message = event
+    
+    # print("Received Event:", json.dumps(event, indent=2))
+
+    # # Parse SNS message if applicable
+    # if "Records" in event and isinstance(event["Records"], list) and event["Records"]:
+    #     try:
+    #         sns_message = event["Records"][0]["Sns"]["Message"]
+    #         print(f"Raw SNS Message: {sns_message}")
+    #         message = json.loads(sns_message)
+    #     except Exception as e:
+    #         print(f"[ERROR] Could not parse SNS message: {e}")
+    #         return {"statusCode": 400, "body": "Invalid SNS event format"}
+    # else:
+    #     print("Direct Budget event received.")
+    #     message = event
 
     try:
         # Normalize keys
