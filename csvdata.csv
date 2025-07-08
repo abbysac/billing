@@ -1,5 +1,5 @@
 AccountId,BudgetName,Period,StartMonth,EndMonth,BudgetAmount,BudgetScope,Alert1Threshold,Alert1Trigger,SNSTopicArn,linked_accounts
-224761220970,ABC Operations DEV Account Overall Budget,monthly,2025-03-01_00:00,2025-04-01_00:00,7.08,All AWS services (Recommended),100,ACTUAL,arn:aws:sns:us-east-1:224761220970:budget-updates-topic,"[""224761220970""]"
+224761220970,ABC Operations DEV Account Overall Budget,monthly,2025-03-01_00:00,2025-04-01_00:00,7.06,All AWS services (Recommended),100,ACTUAL,arn:aws:sns:us-east-1:224761220970:budget-updates-topic,"[""224761220970""]"
 224761220970,ABC Operations PROD Account Overall Budget,monthly,2025-03-01_00:00,2025-04-01_00:00,0.001,Filter specific AWS cost dimensions,0.0001,ACTUAL,arn:aws:sns:us-east-1:224761220970:budget-updates-topic,"[""752338767189""]"
 224761220970,ABC Operations QA Account Overall Budget,monthly,2025-03-01_00:00,2025-04-01_00:00,6.53,All AWS services (Recommended),80,ACTUAL,arn:aws:sns:us-east-1:224761220970:budget-updates-topic,"[""224761220970""]"
 
