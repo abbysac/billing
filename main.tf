@@ -817,22 +817,22 @@ def handler(event, context):
                     
                     print(f"Threshold exceeded for {budget_names} ({percentage_used:.2f}%) - publishing to SNS")
           
-                    # try:
-                    #         sns_response = sns.publish(
-                    #             TopicArn=sns_topic_arn,
-                    #             Message=json.dumps({
-                    #                 "account_id": account_id,
-                    #                 "budgetName": budget_name,
-                    #                 "actual_spend": actual_spend,
-                    #                 "budget_limit": budget_limit,
-                    #                 "percent_used": percentage_used,
-                    #                 "alert_trigger": alert_trigger,
-                    #                 "environment": "stage",
-                    #                 "message":  message, #json.dumps(payload)
-                    #                 "Subject": 'Budget Alert',
-                    #                 "threshold_percent": threshold_percent
-                    #             })
-                    #         )
+                    try:
+                            sns_response = sns.publish(
+                                TopicArn=sns_topic_arn,
+                                Message=json.dumps({
+                                    "account_id": account_id,
+                                    "budgetName": budget_name,
+                                    "actual_spend": actual_spend,
+                                    "budget_limit": budget_limit,
+                                    "percent_used": percentage_used,
+                                    "alert_trigger": alert_trigger,
+                                    "environment": "stage",
+                                    "message":  message, #json.dumps(payload)
+                                    "Subject": 'Budget Alert',
+                                    "threshold_percent": threshold_percent
+                                })
+                            )
                             print(f"SNS published successfully for {budget_name}. MessageId: {sns_response['MessageId']}")
                             # ssm.put_parameter(
                             #     Name=param_name,
@@ -847,16 +847,16 @@ def handler(event, context):
                         results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
                         continue
 
-                # results.append({
-                #     "account_id": account_id,
-                #     "budget_name": budget_name,
-                #     "budget_limit": budget_limit,
-                #     "actual_spend": actual_spend,
-                #     "percentage_used": percentage_used,
-                #     "alert_triggered": alert_triggered,
-                #     "threshold_percent": threshold_percent,
-                #     "alert_trigger": alert_trigger
-                # })
+                results.append({
+                    "account_id": account_id,
+                    "budget_name": budget_name,
+                    "budget_limit": budget_limit,
+                    "actual_spend": actual_spend,
+                    "percentage_used": percentage_used,
+                    "alert_triggered": alert_triggered,
+                    "threshold_percent": threshold_percent,
+                    "alert_trigger": alert_trigger
+                })
 
             except Exception as e:
                 print(f"Error processing budget {budget_name}: {str(e)}")
