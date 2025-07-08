@@ -2,10 +2,13 @@ import boto3
 import decimal
 import logging
 import json
+import botocore.exceptions
+import time
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
+
 
 # SES client
 ses = boto3.client('ses', region_name='us-east-1')
@@ -19,6 +22,22 @@ class DecimalEncoder(json.JSONEncoder):
         if isinstance(obj, decimal.Decimal):
             return float(obj)
         return super().default(obj)
+    
+# Helper to send SES email with retries
+def send_email_with_retries(email_params, retries=2, delay=1):
+    for attempt in range(1, retries + 1):
+        try:
+            response = ses.send_email(**email_params)
+            return response
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == 'Throttling':
+                logger.warning(f"SES throttled. Attempt {attempt} of {retries}. Retrying in {delay} seconds...")
+                time.sleep(delay)
+                delay *= 2
+            else:
+                raise
+    raise Exception("Exceeded retry limit due to SES throttling")
+
 
 def lambda_handler(event, context):
     logger.info(f"Received Event: {json.dumps(event, indent=2)}")
@@ -36,15 +55,15 @@ def lambda_handler(event, context):
         logger.error(f"Error accessing SNS message: {e}")
         return {"statusCode": 400, "body": f"Unable to extract SNS message: {e}"}
     
-    # if not sns_message.strip():
-    #     logger.error("SNS message is empty or whitespace")
-    #     return {"statusCode": 400, "body": "SNS message was empty"}
+    if not sns_message.strip():
+        logger.error("SNS message is empty or whitespace")
+        return {"statusCode": 400, "body": "SNS message was empty"}
 
-    # try:
-    #     message = json.loads(sns_message)
-    # except json.JSONDecodeError as e:
-    #     logger.error(f"Failed to decode SNS message: {str(e)}")
-    #     return {"statusCode": 400, "body": f"Invalid SNS message format: {str(e)}"}
+    try:
+        message = json.loads(sns_message)
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to decode SNS message: {str(e)}")
+        return {"statusCode": 400, "body": f"Invalid SNS message format: {str(e)}"}
 
 
      # Extract budget details
