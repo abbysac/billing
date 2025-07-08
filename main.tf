@@ -834,29 +834,29 @@ def handler(event, context):
                                 })
                             )
                             print(f"SNS published successfully for {budget_name}. MessageId: {sns_response['MessageId']}")
-                            ssm.put_parameter(
-                                Name=param_name,
-                                Value=json.dumps({
-                                    "message_id": sns_response["MessageId"],
-                                    "timestamp": str(datetime.datetime.utcnow())
-                                }),
-                                Type="String"
-                            )
+                            # ssm.put_parameter(
+                            #     Name=param_name,
+                            #     Value=json.dumps({
+                            #         "message_id": sns_response["MessageId"],
+                            #         "timestamp": str(datetime.datetime.utcnow())
+                            #     }),
+                            #     Type="String"
+                            # )
                     except Exception as sns_error:
                         print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
                         results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
                         continue
 
-                # results.append({
-                #     "account_id": account_id,
-                #     "budget_name": budget_name,
-                #     "budget_limit": budget_limit,
-                #     "actual_spend": actual_spend,
-                #     "percentage_used": percentage_used,
-                #     "alert_triggered": alert_triggered,
-                #     "threshold_percent": threshold_percent,
-                #     "alert_trigger": alert_trigger
-                # })
+                results.append({
+                    "account_id": account_id,
+                    "budget_name": budget_name,
+                    "budget_limit": budget_limit,
+                    "actual_spend": actual_spend,
+                    "percentage_used": percentage_used,
+                    "alert_triggered": alert_triggered,
+                    "threshold_percent": threshold_percent,
+                    "alert_trigger": alert_trigger
+                })
 
             except Exception as e:
                 print(f"Error processing budget {budget_name}: {str(e)}")
