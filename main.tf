@@ -756,7 +756,7 @@ import urllib.parse
 
 def handler(event, context):
     results = []
-    account_id = event.get("AccountId")
+    account_id = event.get("TargetAccountId")
     budget_names = event.get("BudgetName")
     sns_topic_arn = event.get("SnsTopicArn", "")
     message = event.get("Message", "Budget threshold exceeded")
@@ -771,7 +771,7 @@ def handler(event, context):
         return {"results": results}
 
     if not all([account_id, budget_names, sns_topic_arn]):
-        results.append({"account_id": account_id, "error": "Missing required inputs: AccountId, BudgetName, or SnsTopicArn"})
+        results.append({"account_id": account_id, "error": "Missing required inputs:  AccountId, BudgetName, or SnsTopicArn"})
         return {"results": results}
 
     try:
