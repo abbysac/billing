@@ -36,15 +36,15 @@ def lambda_handler(event, context):
         logger.error(f"Error accessing SNS message: {e}")
         return {"statusCode": 400, "body": f"Unable to extract SNS message: {e}"}
     
-    if not sns_message.strip():
-        logger.error("SNS message is empty or whitespace")
-        return {"statusCode": 400, "body": "SNS message was empty"}
+    # if not sns_message.strip():
+    #     logger.error("SNS message is empty or whitespace")
+    #     return {"statusCode": 400, "body": "SNS message was empty"}
 
-    try:
-        message = json.loads(sns_message)
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to decode SNS message: {str(e)}")
-        return {"statusCode": 400, "body": f"Invalid SNS message format: {str(e)}"}
+    # try:
+    #     message = json.loads(sns_message)
+    # except json.JSONDecodeError as e:
+    #     logger.error(f"Failed to decode SNS message: {str(e)}")
+    #     return {"statusCode": 400, "body": f"Invalid SNS message format: {str(e)}"}
 
 
      # Extract budget details
@@ -56,7 +56,7 @@ def lambda_handler(event, context):
         percentage_used = float(message.get("percentage_used", (actual_spend / budget_limit * 100 if budget_limit else 0)))
         alert_trigger = message.get("alert_trigger", message.get("AlertTrigger", message.get("alertType", "ACTUAL")))
         environment = message.get("environment", "stage")
-        threshold = float(message.get("threshold_percent", message.get("AlertThreshold", 100.0)))
+        threshold = float(message.get("threshold_percent", message.get("AlertThreshold", 80.0)))
 
         if not all([account_id, budget_name]):
             error_msg = f"Missing required fields: {message}"
@@ -69,16 +69,16 @@ def lambda_handler(event, context):
             logger.info(f"{budget_name} usage ({percentage_used:.2f}%) below threshold ({threshold}%) - no email sent")
             return {"statusCode": 200, "body": "Threshold not exceeded"}
         
-        #  Trigger SSM Automation if over threshold
-        if percentage_used >= threshold:
-            try:
-                response = ssm.start_automation_execution(
-                DocumentName='budget_update_gha_alert',
-                Parameters={'TargetAccountId': [account_id]}
- )
-                print("SSM Automation triggered:", response)
-            except Exception as e:
-                print(f"Failed to start SSM automation: {e}")
+#         #  Trigger SSM Automation if over threshold
+#         if percentage_used >= threshold:
+#             try:
+#                 response = ssm.start_automation_execution(
+#                 DocumentName='budget_update_gha_alert',
+#                 Parameters={'TargetAccountId': [account_id]}
+#  )
+#                 print("SSM Automation triggered:", response)
+#             except Exception as e:
+#                 print(f"Failed to start SSM automation: {e}")
         
        
         # Send email
