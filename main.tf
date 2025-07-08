@@ -756,7 +756,7 @@ import urllib.parse
 
 def handler(event, context):
     results = []
-    account_id = event.get("TargetAccountId")
+    account_id = event.get("AccountId")
     budget_names = event.get("BudgetName")
     sns_topic_arn = event.get("SnsTopicArn", "")
     message = event.get("Message", "Budget threshold exceeded")

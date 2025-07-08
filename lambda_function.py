@@ -66,8 +66,8 @@ def lambda_handler(event, context):
 
     try:
         # Normalize keys
-        account_id = message.get("account_id")  #or message.get("account_Id")
-        budget_name = message.get("budget_name")
+        account_id = message.get("AccountId")  #or message.get("account_Id")
+        budget_name = message.get("BudgetName")
         threshold = float(message.get("threshold", 80.0))
         # actual_spend = message.get("actual_spend")
         # budget_limit = message.get("budget_limit")
