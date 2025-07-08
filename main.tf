@@ -844,19 +844,22 @@ def handler(event, context):
                             # )
                     except Exception as sns_error:
                         print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
-                        results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
-                        continue
+                        # results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
+                        # continue
+                if percentage_used >= threshold_percent and not already_alerted(account_id, budget_name):
+                  results.append({...})
 
-                # results.append({
-                #     "account_id": account_id,
-                #     "budget_name": budget_name,
-                #     "budget_limit": budget_limit,
-                #     "actual_spend": actual_spend,
-                #     "percentage_used": percentage_used,
-                #     "alert_triggered": alert_triggered,
-                #     "threshold_percent": threshold_percent,
-                #     "alert_trigger": alert_trigger
-                # })
+
+                results.append({
+                    "account_id": account_id,
+                    "budget_name": budget_name,
+                    "budget_limit": budget_limit,
+                    "actual_spend": actual_spend,
+                    "percentage_used": percentage_used,
+                    "alert_triggered": alert_triggered,
+                    "threshold_percent": threshold_percent,
+                    "alert_trigger": alert_trigger
+                })
 
             except Exception as e:
                 print(f"Error processing budget {budget_name}: {str(e)}")
