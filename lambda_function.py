@@ -10,7 +10,7 @@ logger = logging.getLogger()
 # SES client
 ses = boto3.client('ses', region_name='us-east-1')
 
-SENDER_EMAIL = "abbysac@gmail.com"  # SES-verified email
+SENDER_EMAIL = "abbysac@gmail.com"
 RECIPIENT_EMAIL = "camleous@yahoo.com"
 
 class DecimalEncoder(json.JSONEncoder):
@@ -22,47 +22,53 @@ class DecimalEncoder(json.JSONEncoder):
 def lambda_handler(event, context):
     logger.info(f"Received Event: {json.dumps(event, indent=2)}")
 
-    # Extract message
+    # Try to extract SNS message
     try:
         if "Records" in event and isinstance(event["Records"], list) and len(event["Records"]) > 0:
-            sns_message = event["Records"][0]["Sns"]["Message"]
-            if not sns_message:
-                logger.error("SNS message is empty")
-                return {"statusCode": 400, "body": "Empty SNS message"}
-            # message = json.loads(sns_message) if isinstance(sns_message, str) else sns_message
-           
-           # Parse sns message
-            if isinstance(sns_message, str) and sns_message.strip():
-                try:
-                    message = json.loads(sns_message)
-                except json.JSONDecodeError as e:
-                    logger.error(f"Failed to decode JSON from SNS message: {str(e)}")
-                    return {"statusCode": 400, "body": "Invalid SNS JSON format"}
-            else:
-                logger.error("SNS message is empty or not a string")
+            sns_message = event["Records"][0].get("Sns", {}).get("Message", "")
+
+            if not isinstance(sns_message, str) or not sns_message.strip():
+                logger.error("SNS message is empty or not a valid string")
                 return {"statusCode": 400, "body": "Empty or malformed SNS message"}
+
+            try:
+                message = json.loads(sns_message)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to decode JSON from SNS message: {str(e)}")
+                return {"statusCode": 400, "body": "Invalid SNS JSON format"}
 
             logger.info(f"Parsed SNS Message: {json.dumps(message, indent=2)}")
         else:
-            logger.info("Direct event received (e.g., from SSM), using raw event.")
+            logger.info("Non-SNS event received (e.g., from SSM or test console)")
             message = event
-    except (KeyError, IndexError, json.JSONDecodeError) as e:
+    except Exception as e:
         logger.error(f"Error parsing event: {str(e)}")
         return {"statusCode": 400, "body": f"Invalid event format: {str(e)}"}
 
     # Extract budget details
     try:
-        account_id = message.get("account_id", message.get("TargetAccountId", "Unknown"))
-        budget_name = message.get("budgetName", message.get("BudgetName", "billing-alert"))
-        actual_spend = float(message.get("actual_spend", message.get("ActualSpend", message.get("actualAmount", 0.0))))
-        budget_limit = float(message.get("budget_limit", message.get("BudgetLimit", message.get("budgetLimit", 1.0))))
-        percentage_used = float(message.get("percentage_used", (actual_spend / budget_limit * 100 if budget_limit else 0)))
-        alert_trigger = message.get("alert_trigger", message.get("AlertTrigger", message.get("alertType", "ACTUAL")))
+        account_id = message.get("account_id") or message.get("TargetAccountId") or "Unknown"
+        budget_name = message.get("budgetName") or message.get("BudgetName") or "billing-alert"
+        actual_spend = float(
+            message.get("actual_spend") or
+            message.get("ActualSpend") or
+            message.get("CalculatedSpend", {}).get("ActualSpend", {}).get("Amount", 0.0)
+        )
+        budget_limit = float(
+            message.get("budget_limit") or
+            message.get("BudgetLimit") or
+            message.get("BudgetLimit", {}).get("Amount", 1.0)
+        )
+        percentage_used = float(
+            message.get("percentage_used") or
+            (actual_spend / budget_limit * 100 if budget_limit else 0)
+        )
+        alert_trigger = message.get("alert_trigger") or message.get("AlertTrigger") or "ACTUAL"
         environment = message.get("environment", "stage")
-        threshold = float(message.get("threshold_percent", message.get("AlertThreshold", 80.0)))
+        threshold = float(message.get("threshold_percent") or message.get("AlertThreshold") or 80.0)
 
-        if not all([account_id, budget_name]):
-            error_msg = f"Missing required fields: {message}"
+        if not account_id or not budget_name:
+            error_msg = f"Missing required fields: {json.dumps(message)}"
             logger.error(error_msg)
             return {"statusCode": 400, "body": error_msg}
 
@@ -72,10 +78,11 @@ def lambda_handler(event, context):
             logger.info(f"{budget_name} usage ({percentage_used:.2f}%) below threshold ({threshold}%) - no email sent")
             return {"statusCode": 200, "body": "Threshold not exceeded"}
 
-        # Send email
+        # Compose and send SES email
         subject = f"AWS Budget Alert: {budget_name}"
         email_body = f"""
 {account_id} {budget_name}
+
 Dear System Owner,
 
 The actual cost accrued in "{environment}" for "{budget_name}" has exceeded
@@ -113,6 +120,4 @@ Full Message:
 
     except Exception as e:
         logger.error(f"Error in main handler logic: {str(e)}")
-        return {"statusCode": 500, "body": f"Unexpected processing error: {str(e)}"} 
-
-
+        return {"statusCode": 500, "body": f"Unexpected processing error: {str(e)}"}
