@@ -3,6 +3,7 @@ import json
 import decimal
 import datetime
 import os
+import re
 
 # Email Config
 SENDER_EMAIL = "abbysac@gmail.com"
@@ -12,8 +13,8 @@ RECIPIENT_EMAIL = "camleous@yahoo.com"
 ses = boto3.client('ses')
 ssm = boto3.client('ssm')
 budgets = boto3.client('budgets')
-dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('BudgetAlertTracker')  # Ensure this table exists
+# dynamodb = boto3.resource('dynamodb')
+# table = dynamodb.Table('BudgetAlertTracker')
 
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -28,6 +29,10 @@ def get_ssm_parameter(name, default=None):
     except ssm.exceptions.ParameterNotFound:
         print(f"SSM parameter {name} not found, using default: {default}")
         return default
+
+def is_valid_account_id(account_id):
+    """Validate that account_id is a 12-digit string."""
+    return isinstance(account_id, str) and re.match(r'^\d{12}$', account_id) is not None
 
 def lambda_handler(event, context):
     print("Received Event:", json.dumps(event, indent=2))
@@ -53,18 +58,22 @@ def lambda_handler(event, context):
         message = event
 
     try:
-        # Normalize keys (handle variations from SNS publisher)
+        # Normalize keys
         account_id = (message.get("account_id") or message.get("AccountId") or
-                      get_ssm_parameter("/budgets/default/account_id", "Unknown"))
+                      get_ssm_parameter("/budgets/default/account_id") or
+                      os.getenv("DEFAULT_ACCOUNT_ID", "224761220970"))  # Valid fallback
         budget_name = (message.get("budget_name") or message.get("budgetName") or
                        get_ssm_parameter("/budgets/default/budget_name", "UnknownBudget"))
         environment = (message.get("environment") or
                        get_ssm_parameter("/budgets/default/environment", os.getenv("ENVIRONMENT", "dev")))
         
         # Validate required fields
-        if not account_id or not budget_name:
-            print(f"[ERROR] Missing account_id or budget_name: account_id={account_id}, budget_name={budget_name}")
-            return {"statusCode": 400, "body": "Missing required fields: account_id or budget_name"}
+        if not is_valid_account_id(account_id):
+            print(f"[ERROR] Invalid account_id: {account_id} (must be 12 digits)")
+            return {"statusCode": 400, "body": f"Invalid account_id: {account_id}"}
+        if not budget_name:
+            print(f"[ERROR] Missing budget_name: {budget_name}")
+            return {"statusCode": 400, "body": "Missing budget_name"}
 
         # Numeric fields with validation
         try:
@@ -157,15 +166,15 @@ Full Event Message:
                 }
             )
             print(f"[SUCCESS] Email sent! Message ID: {response['MessageId']}")
-            table.put_item(
-                Item={
-                    'account_id': account_id,
-                    'budget_name': budget_name,
-                    'date': today,
-                    'message_id': response['MessageId'],
-                    'timestamp': datetime.datetime.utcnow().isoformat()
-                }
-            )
+            # table.put_item(
+            #     Item={
+            #         'account_id': account_id,
+            #         'budget_name': budget_name,
+            #         'date': today,
+            #         'message_id': response['MessageId'],
+            #         'timestamp': datetime.datetime.utcnow().isoformat()
+            #     }
+            # )
             return {"statusCode": 200, "body": "Email sent successfully"}
         except Exception as e:
             print(f"[ERROR] Failed to send email: {str(e)}")
