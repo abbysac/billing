@@ -62,8 +62,8 @@ def lambda_handler(event, context):
         account_id = (message.get("account_id") or message.get("AccountId") or
                       get_ssm_parameter("/budgets/default/account_id") or
                       os.getenv("DEFAULT_ACCOUNT_ID", "224761220970"))  # Valid fallback
-        budget_name = (message.get("budget_name") or message.get("budgetName") or
-                       get_ssm_parameter("/budgets/default/budget_name", "UnknownBudget"))
+        budget_name = (message.get("budget_name") or message.get("BudgetName") or
+                       get_ssm_parameter("/budgets/default/budget_name", "BudgetName"))
         environment = (message.get("environment") or
                        get_ssm_parameter("/budgets/default/environment", os.getenv("ENVIRONMENT", "dev")))
         
@@ -115,17 +115,17 @@ def lambda_handler(event, context):
         percent_used = (actual_spend / budget_limit) * 100 if budget_limit > 0 else 0
         print(f"[INFO] {account_id} - {budget_name} used {percent_used:.2f}% of budget")
 
-        # Check if email was already sent for this budget today
-        today = datetime.datetime.utcnow().strftime('%Y-%m-%d')
-        try:
-            response = table.get_item(
-                Key={'account_id': account_id, 'budget_name': budget_name, 'date': today}
-            )
-            if 'Item' in response:
-                print(f"Email already sent for {budget_name} on {today}, skipping.")
-                return {"statusCode": 200, "body": "Email skipped to prevent duplicates"}
-        except Exception as e:
-            print(f"Error checking DynamoDB: {str(e)}")
+        # # Check if email was already sent for this budget today
+        # today = datetime.datetime.utcnow().strftime('%Y-%m-%d')
+        # try:
+        #     response = table.get_item(
+        #         Key={'account_id': account_id, 'budget_name': budget_name, 'date': today}
+        #     )
+        #     if 'Item' in response:
+        #         print(f"Email already sent for {budget_name} on {today}, skipping.")
+        #         return {"statusCode": 200, "body": "Email skipped to prevent duplicates"}
+        # except Exception as e:
+        #     print(f"Error checking DynamoDB: {str(e)}")
 
         # Compose email
         subject = f"AWS Budget Alert: {budget_name} ({account_id})"
