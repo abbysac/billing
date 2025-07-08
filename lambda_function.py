@@ -56,7 +56,7 @@ def lambda_handler(event, context):
         percentage_used = float(message.get("percentage_used", (actual_spend / budget_limit * 100 if budget_limit else 0)))
         alert_trigger = message.get("alert_trigger", message.get("AlertTrigger", message.get("alertType", "ACTUAL")))
         environment = message.get("environment", "stage")
-        threshold = float(message.get("threshold_percent", message.get("AlertThreshold", 80.0)))
+        threshold = float(message.get("threshold_percent", message.get("AlertThreshold", 100.0)))
 
         if not all([account_id, budget_name]):
             error_msg = f"Missing required fields: {message}"
