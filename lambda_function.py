@@ -40,50 +40,50 @@ def send_email_with_retries(email_params, retries=2, delay=1):
 
 
 def lambda_handler(event, context):
-    logger.info(f"Received Event: {json.dumps(event, indent=2)}")
-
-    # Try to extract SNS message
-    try:
-        sns_message = ""
-        if "Records" in event:
-            sns_message = event["Records"][0].get("Sns", {}).get("Message", "")
-        else:
-            sns_message = json.dumps(event) if isinstance(event, dict) else str(event)
-
-        if not sns_message.strip():
-            raise ValueError("SNS message is empty or whitespace")
-
-        message = json.loads(sns_message)
-        logger.info(f"Parsed message: {json.dumps(message, indent=2)}")
-
-    except Exception as e:
-        logger.error(f"Error parsing event: {e}")
-        return {"statusCode": 400, "body": f"Invalid input: {e}"}
-    
     # logger.info(f"Received Event: {json.dumps(event, indent=2)}")
 
     # # Try to extract SNS message
-    # sns_message = ""
     # try:
-    #     if isinstance(event, dict) and "Records" in event:
+    #     sns_message = ""
+    #     if "Records" in event:
     #         sns_message = event["Records"][0].get("Sns", {}).get("Message", "")
     #     else:
-    #         # Fallback for non-SNS events (e.g., SSM direct test)
-    #         logger.info("No 'Records' key found, using raw event directly")
     #         sns_message = json.dumps(event) if isinstance(event, dict) else str(event)
-    # except Exception as e:
-    #     logger.error(f"Error accessing SNS message: {e}")
-    #     return {"statusCode": 400, "body": f"Unable to extract SNS message: {e}"}
-    
-    # if not sns_message.strip():
-    #     logger.error("SNS message is empty or whitespace")
-    #     return {"statusCode": 400, "body": "SNS message was empty"}
 
-    # try:
+    #     if not sns_message.strip():
+    #         raise ValueError("SNS message is empty or whitespace")
+
     #     message = json.loads(sns_message)
-    # except json.JSONDecodeError as e:
-    #     logger.error(f"Failed to decode SNS message: {str(e)}")
-    #     return {"statusCode": 400, "body": f"Invalid SNS message format: {str(e)}"}
+    #     logger.info(f"Parsed message: {json.dumps(message, indent=2)}")
+
+    # except Exception as e:
+    #     logger.error(f"Error parsing event: {e}")
+    #     return {"statusCode": 400, "body": f"Invalid input: {e}"}
+    
+    logger.info(f"Received Event: {json.dumps(event, indent=2)}")
+
+    # Try to extract SNS message
+    sns_message = ""
+    try:
+        if isinstance(event, dict) and "Records" in event:
+            sns_message = event["Records"][0].get("Sns", {}).get("Message", "")
+        else:
+            # Fallback for non-SNS events (e.g., SSM direct test)
+            logger.info("No 'Records' key found, using raw event directly")
+            sns_message = json.dumps(event) if isinstance(event, dict) else str(event)
+    except Exception as e:
+        logger.error(f"Error accessing SNS message: {e}")
+        return {"statusCode": 400, "body": f"Unable to extract SNS message: {e}"}
+    
+    if not sns_message.strip():
+        logger.error("SNS message is empty or whitespace")
+        return {"statusCode": 400, "body": "SNS message was empty"}
+
+    try:
+        message = json.loads(sns_message)
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to decode SNS message: {str(e)}")
+        return {"statusCode": 400, "body": f"Invalid SNS message format: {str(e)}"}
 
 
      # Extract budget details
