@@ -24,19 +24,28 @@ def lambda_handler(event, context):
     logger.info(f"Received Event: {json.dumps(event, indent=2)}")
 
     # Try to extract SNS message
-    sns_message = event["Records"][0].get("Sns", {}).get("Message", "")
-
-    logger.info(f"Raw SNS Message: '{sns_message}'")
-
-    if not isinstance(sns_message, str) or not sns_message.strip():
-        logger.error("SNS message is empty or not a valid string")
-        return {"statusCode": 400, "body": "Empty or malformed SNS message"}
+    sns_message = ""
+    try:
+        if isinstance(event, dict) and "Records" in event:
+            sns_message = event["Records"][0].get("Sns", {}).get("Message", "")
+        else:
+            # Fallback for non-SNS events (e.g., SSM direct test)
+            logger.info("No 'Records' key found, using raw event directly")
+            sns_message = json.dumps(event) if isinstance(event, dict) else str(event)
+    except Exception as e:
+        logger.error(f"Error accessing SNS message: {e}")
+        return {"statusCode": 400, "body": f"Unable to extract SNS message: {e}"}
+    
+    if not sns_message.strip():
+        logger.error("SNS message is empty or whitespace")
+        return {"statusCode": 400, "body": "SNS message was empty"}
 
     try:
         message = json.loads(sns_message)
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to decode JSON from SNS message: {str(e)}")
-        return {"statusCode": 400, "body": f"Invalid SNS JSON format: {str(e)}"}
+        logger.error(f"Failed to decode SNS message: {str(e)}")
+        return {"statusCode": 400, "body": f"Invalid SNS message format: {str(e)}"}
+
 
      # Extract budget details
     try:
