@@ -323,7 +323,7 @@ resource "aws_iam_policy" "policy" {
         "Action" : [
           "budgets:DescribeBudget",
           "budgets:ViewBudget",
-          # "sns:Publish"
+          "ssm:GetParameter"
 
         ]
 
