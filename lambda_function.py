@@ -49,55 +49,32 @@ def lambda_handler(event, context):
         logger.error(f"Error parsing event: {str(e)}")
         return {"statusCode": 400, "body": f"Invalid event format: {str(e)}"}
 
-    # Extract budget details
+     # Extract budget details
     try:
-        account_id = message.get("account_id") or message.get("TargetAccountId") or "Unknown"
-        budget_name = message.get("budgetName") or message.get("BudgetName") or "billing-alert"
-        actual_spend = float(
-            message.get("actual_spend") or
-            message.get("ActualSpend") or
-            message.get("CalculatedSpend", {}).get("ActualSpend", {}).get("Amount", 0.0)
-        )
-        budget_limit = float(
-            message.get("budget_limit") or
-            message.get("BudgetLimit") or
-            message.get("BudgetLimit", {}).get("Amount", 1.0)
-        )
-        percentage_used = float(
-            message.get("percentage_used") or
-            (actual_spend / budget_limit * 100 if budget_limit else 0)
-        )
-        alert_trigger = message.get("alert_trigger") or message.get("AlertTrigger") or "ACTUAL"
+        account_id = message.get("account_id", message.get("TargetAccountId", "Unknown"))
+        budget_name = message.get("budgetName", message.get("BudgetName", "billing-alert"))
+        actual_spend = float(message.get("actual_spend", message.get("ActualSpend", message.get("actualAmount", 0.0))))
+        budget_limit = float(message.get("budget_limit", message.get("BudgetLimit", message.get("budgetLimit", 1.0))))
+        percentage_used = float(message.get("percentage_used", (actual_spend / budget_limit * 100 if budget_limit else 0)))
+        alert_trigger = message.get("alert_trigger", message.get("AlertTrigger", message.get("alertType", "ACTUAL")))
         environment = message.get("environment", "stage")
-        threshold = float(message.get("threshold_percent") or message.get("AlertThreshold") or 80.0)
+        threshold = float(message.get("threshold_percent", message.get("AlertThreshold", 80.0)))
 
-        if not account_id or not budget_name:
-            error_msg = f"Missing required fields: {json.dumps(message)}"
+        if not all([account_id, budget_name]):
+            error_msg = f"Missing required fields: {message}"
             logger.error(error_msg)
             return {"statusCode": 400, "body": error_msg}
 
         logger.info(f"{account_id} - {budget_name} used {percentage_used:.2f}% of budget, threshold: {threshold}%")
 
-        # if percentage_used < threshold:
-        #     logger.info(f"{budget_name} usage ({percentage_used:.2f}%) below threshold ({threshold}%) - no email sent")
-        #     return {"statusCode": 200, "body": "Threshold not exceeded"}
+        if percentage_used < threshold:
+            logger.info(f"{budget_name} usage ({percentage_used:.2f}%) below threshold ({threshold}%) - no email sent")
+            return {"statusCode": 200, "body": "Threshold not exceeded"}
 
-         # Trigger SSM Automation if over threshold
-        if percentage_used >= threshold:
-            try:
-                response = ssm.start_automation_execution(
-                    DocumentName='budget_update_gha_alert',
-                    Parameters={'TargetAccountId': [account_id]}
-                )
-                print("SSM Automation triggered:", response)
-            except Exception as e:
-                print(f"Failed to start SSM automation: {e}")
-        
-        # Compose and send SES email
+        # Send email
         subject = f"AWS Budget Alert: {budget_name}"
         email_body = f"""
 {account_id} {budget_name}
-
 Dear System Owner,
 
 The actual cost accrued in "{environment}" for "{budget_name}" has exceeded
@@ -135,4 +112,4 @@ Full Message:
 
     except Exception as e:
         logger.error(f"Error in main handler logic: {str(e)}")
-        return {"statusCode": 500, "body": f"Unexpected processing error: {str(e)}"}
+        return {"statusCode": 500, "body": f"Unexpected processing error: {str(e)}"} 
