@@ -9,6 +9,7 @@ logger = logging.getLogger()
 
 # SES client
 ses = boto3.client('ses', region_name='us-east-1')
+ssm = boto3.client('ssm')
 
 SENDER_EMAIL = "abbysac@gmail.com"
 RECIPIENT_EMAIL = "camleous@yahoo.com"
@@ -77,10 +78,21 @@ def lambda_handler(event, context):
 
         logger.info(f"{account_id} - {budget_name} used {percentage_used:.2f}% of budget, threshold: {threshold}%")
 
-        if percentage_used < threshold:
-            logger.info(f"{budget_name} usage ({percentage_used:.2f}%) below threshold ({threshold}%) - no email sent")
-            return {"statusCode": 200, "body": "Threshold not exceeded"}
+        # if percentage_used < threshold:
+        #     logger.info(f"{budget_name} usage ({percentage_used:.2f}%) below threshold ({threshold}%) - no email sent")
+        #     return {"statusCode": 200, "body": "Threshold not exceeded"}
 
+         # Trigger SSM Automation if over threshold
+        if percentage_used >= threshold:
+            try:
+                response = ssm.start_automation_execution(
+                    DocumentName='budget_update_gha_alert',
+                    Parameters={'TargetAccountId': [account_id]}
+                )
+                print("SSM Automation triggered:", response)
+            except Exception as e:
+                print(f"Failed to start SSM automation: {e}")
+        
         # Compose and send SES email
         subject = f"AWS Budget Alert: {budget_name}"
         email_body = f"""
