@@ -139,26 +139,26 @@ Environment: {environment}
 Budget Limit: ${budget_limit:.2f}
 Alert Trigger: {alert_trigger}
 
-Full Message:
-{json.dumps(message, indent=2, cls=DecimalEncoder)}
-"""
+# Full Message:
+# {json.dumps(message, indent=2, cls=DecimalEncoder)}
+# """
 
-        response = ses.send_email(
-            Source=SENDER_EMAIL,
-            Destination={'ToAddresses': [RECIPIENT_EMAIL]},
-            Message={
-                'Subject': {'Data': subject},
-                'Body': {
-                    'Text': {
-                        'Data': email_body,
-                        'Charset': 'UTF-8'
-                    }
-                }
-            }
-        )
-        logger.info(f"Email sent! Message ID: {response['MessageId']}")
-        return {"statusCode": 200, "body": "Email sent successfully"}
+#         response = ses.send_email(
+#             Source=SENDER_EMAIL,
+#             Destination={'ToAddresses': [RECIPIENT_EMAIL]},
+#             Message={
+#                 'Subject': {'Data': subject},
+#                 'Body': {
+#                     'Text': {
+#                         'Data': email_body,
+#                         'Charset': 'UTF-8'
+#                     }
+#                 }
+#             }
+#         )
+#         logger.info(f"Email sent! Message ID: {response['MessageId']}")
+#         return {"statusCode": 200, "body": "Email sent successfully"}
 
-    except Exception as e:
-        logger.error(f"Error in main handler logic: {str(e)}")
-        return {"statusCode": 500, "body": f"Unexpected processing error: {str(e)}"} 
+#     except Exception as e:
+#         logger.error(f"Error in main handler logic: {str(e)}")
+#         return {"statusCode": 500, "body": f"Unexpected processing error: {str(e)}"} 
