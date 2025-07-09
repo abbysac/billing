@@ -108,16 +108,16 @@ def lambda_handler(event, context):
             logger.info(f"{budget_name} usage ({percentage_used:.2f}%) below threshold ({threshold}%) - no email sent")
             return {"statusCode": 200, "body": "Threshold not exceeded"}
         
-        #  Trigger SSM Automation if over threshold
-#         if percentage_used >= threshold:
-#             try:
-#                 response = ssm.start_automation_execution(
-#                 DocumentName='budget_update_gha_alert',
-#                 Parameters={'TargetAccountId': [account_id]}
-#  )
-#                 print("SSM Automation triggered:", response)
-#             except Exception as e:
-#                 print(f"Failed to start SSM automation: {e}")
+         #Trigger SSM Automation if over threshold
+        if percentage_used >= threshold:
+            try:
+                response = ssm.start_automation_execution(
+                DocumentName='budget_update_gha_alert',
+                Parameters={'TargetAccountId': [account_id]}
+ )
+                print("SSM Automation triggered:", response)
+            except Exception as e:
+                print(f"Failed to start SSM automation: {e}")
         
        
         # Send email
@@ -139,23 +139,23 @@ Environment: {environment}
 Budget Limit: ${budget_limit:.2f}
 Alert Trigger: {alert_trigger}
 
-# Full Message:
-# {json.dumps(message, indent=2, cls=DecimalEncoder)}
-# """
+Full Message:
+{json.dumps(message, indent=2, cls=DecimalEncoder)}
+"""
 
-#         response = ses.send_email(
-#             Source=SENDER_EMAIL,
-#             Destination={'ToAddresses': [RECIPIENT_EMAIL]},
-#             Message={
-#                 'Subject': {'Data': subject},
-#                 'Body': {
-#                     'Text': {
-#                         'Data': email_body,
-#                         'Charset': 'UTF-8'
-#                     }
-#                 }
-#             }
-#         )
+        response = ses.send_email(
+            Source=SENDER_EMAIL,
+            Destination={'ToAddresses': [RECIPIENT_EMAIL]},
+            Message={
+                'Subject': {'Data': subject},
+                'Body': {
+                    'Text': {
+                        'Data': email_body,
+                        'Charset': 'UTF-8'
+                    }
+                }
+            }
+        )
         logger.info(f"Email sent! Message ID: {response['MessageId']}")
         return {"statusCode": 200, "body": "Email sent successfully"}
 
