@@ -25,7 +25,7 @@ class DecimalEncoder(json.JSONEncoder):
     
 # Helper to send SES email with retries
 def send_email_with_retries(email_params, retries=2, delay=1):
-    for attempt in range(1, retries + 1):
+    for attempt in range(1, retries + 0):
         try:
             response = ses.send_email(**email_params)
             return response
@@ -40,22 +40,32 @@ def send_email_with_retries(email_params, retries=2, delay=1):
 
 
 def lambda_handler(event, context):
+   # Try to extract the raw message string from SNS or fallback to raw event
     try:
-        sns_message_raw = event['Records'][0]['Sns']['Message']
-        logging.info(f"Raw SNS Message: {sns_message_raw}")
+        logger.info(f"Full event received: {json.dumps(event)}")
 
-        # If it's empty, log and stop early
+        if isinstance(event, dict) and "Records" in event and "Sns" in event["Records"][0]:
+            sns_message_raw = event["Records"][0]["Sns"]["Message"]
+            logger.info("Parsed message from SNS event.")
+        else:
+            logger.warning("No 'Records' or 'Sns' key found. Using raw event as message.")
+            sns_message_raw = json.dumps(event) if isinstance(event, dict) else str(event)
+
         if not sns_message_raw.strip():
-            logging.error("SNS message is empty.")
-            return
+            logger.error("SNS message is empty or blank.")
+            return {"statusCode": 400, "body": "SNS message is empty."}
 
-        # Parse JSON
-        sns_message = json.loads(sns_message_raw)
-        logging.info(f"Parsed SNS Message: {sns_message}")
+        logger.info(f"Attempting to decode: {repr(sns_message_raw)}")
+        message = json.loads(sns_message_raw)
+        logger.info(f"Parsed SNS message: {json.dumps(message, indent=2)}")
 
     except json.JSONDecodeError as e:
-        logging.error(f"Failed to decode SNS message: {str(e)}")
-        return
+        logger.error(f"Failed to decode SNS message: {str(e)}")
+        return {"statusCode": 400, "body": f"Invalid JSON in SNS message: {str(e)}"}
+    except Exception as e:
+        logger.error(f"Unexpected error parsing SNS message: {str(e)}")
+        return {"statusCode": 500, "body": f"Error: {str(e)}"}
+
     
     # logger.info(f"Received Event: {json.dumps(event, indent=2)}")
 
@@ -126,16 +136,16 @@ def lambda_handler(event, context):
             logger.info(f"{budget_name} usage ({percentage_used:.2f}%) below threshold ({threshold}%) - no email sent")
             return {"statusCode": 200, "body": "Threshold not exceeded"}
         
-         #Trigger SSM Automation if over threshold
-        if percentage_used >= threshold:
-            try:
-                response = ssm.start_automation_execution(
-                DocumentName='budget_update_gha_alert',
-                Parameters={'TargetAccountId': [account_id]}
- )
-                print("SSM Automation triggered:", response)
-            except Exception as e:
-                print(f"Failed to start SSM automation: {e}")
+#          #Trigger SSM Automation if over threshold
+#         if percentage_used >= threshold:
+#             try:
+#                 response = ssm.start_automation_execution(
+#                 DocumentName='budget_update_gha_alert',
+#                 Parameters={'TargetAccountId': [account_id]}
+#  )
+#                 print("SSM Automation triggered:", response)
+#             except Exception as e:
+#                 print(f"Failed to start SSM automation: {e}")
         
        
         # Send email
