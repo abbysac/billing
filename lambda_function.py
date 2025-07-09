@@ -156,9 +156,9 @@ Alert Trigger: {alert_trigger}
 #                 }
 #             }
 #         )
-#         logger.info(f"Email sent! Message ID: {response['MessageId']}")
-#         return {"statusCode": 200, "body": "Email sent successfully"}
+        logger.info(f"Email sent! Message ID: {response['MessageId']}")
+        return {"statusCode": 200, "body": "Email sent successfully"}
 
-#     except Exception as e:
-#         logger.error(f"Error in main handler logic: {str(e)}")
-#         return {"statusCode": 500, "body": f"Unexpected processing error: {str(e)}"} 
+    except Exception as e:
+        logger.error(f"Error in main handler logic: {str(e)}")
+        return {"statusCode": 500, "body": f"Unexpected processing error: {str(e)}"} 
