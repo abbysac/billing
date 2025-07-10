@@ -21,31 +21,63 @@ class DecimalEncoder(json.JSONEncoder):
         return super().default(obj)
 
 def lambda_handler(event, context):
-    print("Received Event:", json.dumps(event, indent=2))
-   # Extract SNS
-    if "Records" in event and isinstance(event["Records"], list) and event["Records"]:
-        try:
-            sns_message = event["Records"][0]["Sns"]["Message"]
-            print(f"Raw SNS Message: {sns_message}")
-          # Check if sns_message is a string and not empty
+    logger.info("Received Event:\n" + json.dumps(event, indent=2))
+    message = None  # ✅ ensure variable is always defined
+
+    try:
+        if (
+            "Records" in event
+            and isinstance(event["Records"], list)
+            and event["Records"]
+            and "Sns" in event["Records"][0]
+        ):
+            sns_message = event["Records"][0]["Sns"].get("Message", "")
+            logger.info(f"Raw SNS Message: {repr(sns_message)}")
+
             if not isinstance(sns_message, str) or not sns_message.strip():
-               print("Error: SNS message is empty or not a string")
-               return {"statusCode": 400, "body": "Invalid SNS message format"}
-             # Attempt to parse JSON
+                logger.error("SNS message is empty or blank.")
+                return {"statusCode": 400, "body": "SNS message is empty or blank."}
+
+            # Try parsing JSON
             try:
                 message = json.loads(sns_message)
-            except json.JSONDecodeError as e:
-                print(f"Error parsing SNS message as JSON: {str(e)}")
-                # Handle non-JSON message if expected
-                message = {"raw_message": sns_message} # Fallback to raw message
-        except (KeyError, IndexError) as e:
-            print(f"Error accessing SNS message: {str(e)}")
-            return {"statusCode": 400, "body": "Invalid SNS event format"}
-    else:
-        print("Direct Budget event received, using raw event.")
-        message = event
-            
-            
+            except json.JSONDecodeError:
+                logger.warning("Message is not JSON. Falling back to regex-based parser.")
+                # Fallback: extract from plain-text message
+                import re
+                account_id = re.search(r"AWS Account (\d+)", sns_message)
+                budget_name = re.search(r"Budget Name: (.+)", sns_message)
+                actual_spend = re.search(r"ACTUAL Amount: \$?([\d\.]+)", sns_message)
+                budget_limit = re.search(r"Budgeted Amount: \$?([\d\.]+)", sns_message)
+                alert_threshold = re.search(r"Alert Threshold: > \$?([\d\.]+)", sns_message)
+
+                message = {
+                    "account_id": account_id.group(1) if account_id else "Unknown",
+                    "budgetName": budget_name.group(1).strip() if budget_name else "Unknown",
+                    "actual_spend": float(actual_spend.group(1)) if actual_spend else 0.0,
+                    "budget_limit": float(budget_limit.group(1)) if budget_limit else 1.0,
+                    "threshold_percent": 80.0,
+                    "alert_trigger": "ACTUAL",
+                    "environment": "prod"
+                }
+
+                # Compute percentage used
+                if message["budget_limit"] > 0:
+                    message["percentage_used"] = (message["actual_spend"] / message["budget_limit"]) * 100
+                else:
+                    message["percentage_used"] = 0.0
+
+        else:
+            logger.warning("No SNS Records found. Using raw event directly.")
+            message = event
+
+    except Exception as e:
+        logger.error(f"Error parsing SNS message: {e}")
+        return {"statusCode": 400, "body": "Invalid SNS event structure"}
+
+    # ✅ message is now always defined — safe to proceed
+    # ... (rest of your code)
+
         # Extract budget details
     try:
         account_id = message.get("account_id", message.get("TargetAccountId", "Unknown"))
@@ -69,13 +101,13 @@ def lambda_handler(event, context):
             return {"statusCode": 200, "body": "Threshold not exceeded"}
 
 
-            #  Trigger SSM Automation if over threshold
+                #  Trigger SSM Automation if over threshold
         if percentage_used >= threshold:
             try:
                 response = ssm.start_automation_execution(
                 DocumentName='budget_update_gha_alert',
                 Parameters={'TargetAccountId': [account_id]}
-    )
+        )
                 print("SSM Automation triggered:", response)
             except Exception as e:
                 print(f"Failed to start SSM automation: {e}")
