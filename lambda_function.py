@@ -61,22 +61,22 @@ def lambda_handler(event, context):
                     "environment": "prod"
                 }
 
-    #             # Compute percentage used
-    #             if message["budget_limit"] > 0:
-    #                 message["percentage_used"] = (message["actual_spend"] / message["budget_limit"]) * 100
-    #             else:
-    #                 message["percentage_used"] = 0.0
+                # Compute percentage used
+                if message["budget_limit"] > 0:
+                    message["percentage_used"] = (message["actual_spend"] / message["budget_limit"]) * 100
+                else:
+                    message["percentage_used"] = 0.0
 
-    #     else:
-    #         logger.warning("No SNS Records found. Using raw event directly.")
-    #         message = event
+        else:
+            logger.warning("No SNS Records found. Using raw event directly.")
+            message = event
 
-    # except Exception as e:
-    #     logger.error(f"Error parsing SNS message: {e}")
-    #     return {"statusCode": 400, "body": "Invalid SNS event structure"}
+    except Exception as e:
+        logger.error(f"Error parsing SNS message: {e}")
+        return {"statusCode": 400, "body": "Invalid SNS event structure"}
 
-    # ✅ message is now always defined — safe to proceed
-    # ... (rest of your code)
+    #✅ message is now always defined — safe to proceed
+    #... (rest of your code)
 
         # Extract budget details
     try:
@@ -101,16 +101,16 @@ def lambda_handler(event, context):
             return {"statusCode": 200, "body": "Threshold not exceeded"}
 
 
-        #         #  Trigger SSM Automation if over threshold
-        # if percentage_used >= threshold:
-        #     try:
-        #         response = ssm.start_automation_execution(
-        #         DocumentName='budget_update_gha_alert',
-        #         Parameters={'TargetAccountId': [account_id]}
-        # )
-        #         print("SSM Automation triggered:", response)
-        #     except Exception as e:
-        #         print(f"Failed to start SSM automation: {e}")
+                #  Trigger SSM Automation if over threshold
+        if percentage_used >= threshold:
+            try:
+                response = ssm.start_automation_execution(
+                DocumentName='budget_update_gha_alert',
+                Parameters={'TargetAccountId': [account_id]}
+        )
+                print("SSM Automation triggered:", response)
+            except Exception as e:
+                print(f"Failed to start SSM automation: {e}")
 
         subject = f"AWS Budget Alert: {budget_name}"
         email_body = f"""
