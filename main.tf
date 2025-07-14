@@ -731,7 +731,7 @@ resource "aws_ssm_document" "invoke_central_lambda" {
           Runtime = "python3.8"
           Handler = "construct_message"
           Script  = <<-EOT
-            import json
+import json
 def construct_message(inputs, context):
   message = {
             "budgetName": inputs["BudgetName"],
@@ -742,7 +742,7 @@ def construct_message(inputs, context):
             "threshold": float(inputs["Threshold"]),
             "environment": "prod",
             "percentage_used": (float(inputs["ActualSpend"]) / float(inputs["BudgetLimit"]) * 100) if float(inputs["BudgetLimit"]) > 0 else 0.0
-              }
+            }
               return {"message": json.dumps(message)}
             EOT
           InputPayload = {
