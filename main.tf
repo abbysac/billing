@@ -723,21 +723,24 @@ resource "aws_ssm_document" "invoke_central_lambda" {
       }
     }
 
-
     mainSteps = [
       {
-        name   = "assumeRole"
+        name   = "PublishToSNS"
         action = "aws:executeAwsApi"
         inputs = {
-          Service         = "sts"
-          Api             = "AssumeRole"
-          RoleArn         = "{{ AutomationAssumeRole }}"
-          RoleSessionName = "InvokeCentralLambdaSession"
+          Service         = "sns"
+          Api             = "Publish"
+          RoleArn         = "{{ TopicArn }}"
+          RoleSessionName = "{{ Message }}"
         }
+
         outputs = [
-          { Name = "AccessKeyId", Selector = "$.Credentials.AccessKeyId", Type = "String" },
-          { Name = "SecretAccessKey", Selector = "$.Credentials.SecretAccessKey", Type = "String" },
-          { Name = "SessionToken", Selector = "$.Credentials.SessionToken", Type = "String" }
+          { Name = "MessageId" },
+          { Selector = "$.PublishToSNS.MessageId" },
+          { Type = "String" },
+          { Name = "Status" },
+          { Selector = "$.LogResult.status" },
+          { Type = "String" }
         ]
       },
       {
