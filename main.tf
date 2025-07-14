@@ -739,7 +739,7 @@ resource "aws_ssm_document" "invoke_central_lambda" {
           { Selector = "$.PublishToSNS.MessageId" },
           { Type = "String" },
           { Name = "Status" },
-          { Selector = "$.InstanceId" },
+          { Selector = "$.PublishToSNS" },
           { Type = "String" }
         ]
       },
