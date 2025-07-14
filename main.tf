@@ -751,6 +751,8 @@ mainSteps = [
 import boto3
 import json
 import datetime
+import urllib.parse
+import decimal
 
 def handler(event, context):
     results = []
@@ -811,7 +813,7 @@ def handler(event, context):
                 actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
                 percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0
 
-                print(f"Budget: {budget_name}, Limit: ${budget_limit:.2f}, Spend: ${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
+                print(f"Budget: {budget_name}, Limit: $${budget_limit:.2f}, Spend: ${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
 
                 threshold_percent = 80.0
                 alert_trigger = "ACTUAL"
