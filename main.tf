@@ -732,19 +732,19 @@ resource "aws_ssm_document" "invoke_central_lambda" {
           Handler = "construct_message"
           Script  = <<-EOT
             import json
-            def construct_message(inputs, context):
-                message = {
-                    "budgetName": inputs["BudgetName"],
-                    "actualSpend": float(inputs["ActualSpend"]),
-                    "budgetLimit": float(inputs["BudgetLimit"]),
-                    "accountId": inputs["AccountId"],
-                    "alertType": inputs["AlertType"],
-                    "threshold": float(inputs["Threshold"]),
-                    "environment": "prod",
-                    "percentage_used": (float(inputs["ActualSpend"]) / float(inputs["BudgetLimit"]) * 100) if float(inputs["BudgetLimit"]) > 0 else 0.0
-                }
-                return {"message": json.dumps(message)}
-          EOT
+def construct_message(inputs, context):
+  message = {
+            "budgetName": inputs["BudgetName"],
+            "actualSpend": float(inputs["ActualSpend"]),
+            "budgetLimit": float(inputs["BudgetLimit"]),
+            "accountId": inputs["AccountId"],
+            "alertType": inputs["AlertType"],
+            "threshold": float(inputs["Threshold"]),
+            "environment": "prod",
+            "percentage_used": (float(inputs["ActualSpend"]) / float(inputs["BudgetLimit"]) * 100) if float(inputs["BudgetLimit"]) > 0 else 0.0
+              }
+              return {"message": json.dumps(message)}
+            EOT
           InputPayload = {
             BudgetName  = "{{ BudgetName }}"
             ActualSpend = "{{ ActualSpend }}"
@@ -797,10 +797,10 @@ resource "aws_ssm_document" "invoke_central_lambda" {
           Runtime = "python3.8"
           Handler = "log_result"
           Script  = <<-EOT
-            def log_result(inputs, context):
-                print(f"SNS Message Published. MessageId: {inputs['MessageId']}")
-                return {"status": "Success", "messageId": inputs["MessageId"]}
-          EOT
+              def log_result(inputs, context):
+                  print(f"SNS Message Published. MessageId: {inputs['MessageId']}")
+                  return {"status": "Success", "messageId": inputs["MessageId"]}
+            EOT
           InputPayload = {
             MessageId = "{{ PublishToSNS.MessageId }}"
           }
@@ -815,10 +815,10 @@ resource "aws_ssm_document" "invoke_central_lambda" {
           Runtime = "python3.8"
           Handler = "log_error"
           Script  = <<-EOT
-            def log_error(inputs, context):
-                print("Failed to publish SNS message")
-                return {"status": "Failure"}
-          EOT
+              def log_error(inputs, context):
+                  print("Failed to publish SNS message")
+                  return {"status": "Failure"}
+            EOT
         }
       }
     ]
