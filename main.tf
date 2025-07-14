@@ -725,173 +725,117 @@ resource "aws_ssm_document" "invoke_central_lambda" {
 
     mainSteps = [
       {
-        name   = "PublishToSNS"
-        action = "aws:executeAwsApi"
-        inputs = {
-          Service         = "sns"
-          Api             = "Publish"
-          RoleArn         = "{{ TopicArn }}"
-          RoleSessionName = "{{ Message }}"
-        }
-
-        outputs = [
-          { Name = "MessageId" },
-          { Selector = "$.PublishToSNS.MessageId" },
-          { Type = "String" },
-          { Name = "Status" },
-          { Selector = "$.PublishToSNS" },
-          { Type = "String" }
-        ]
-      },
-      {
-        name   = "invokeLambda"
+        name   = "ConstructMessage"
         action = "aws:executeScript"
         inputs = {
           Runtime = "python3.8"
-          Handler = "handler"
-          Script  = <<EOF
-
-
-import boto3
-import json
-import datetime
-import urllib.parse
-
-def handler(event, context):
-    results = []
-    account_id = event.get("AccountId")
-    budget_names = event.get("BudgetName")
-    sns_topic_arn = event.get("SnsTopicArn", "")
-    message = event.get("Message", "Budget threshold exceeded")
-
-    print(f"Input event: {json.dumps(event, indent=2)}")
-    print(f"Processing account: {account_id}, budgets: {budget_names}, sns_topic: {sns_topic_arn}, message: {message}")
-
-    if isinstance(budget_names, str):
-        budget_names = [budget_names]
-    elif not isinstance(budget_names, list) or not budget_names:
-        results.append({"account_id": account_id, "error": "BudgetName must be a non-empty string or list"})
-        return {"results": results}
-
-    if not all([account_id, budget_names, sns_topic_arn]):
-        results.append({"account_id": account_id, "error": "Missing required inputs:  AccountId, BudgetName, or SnsTopicArn"})
-        return {"results": results}
-
-    try:
-        session = boto3.Session(
-            aws_access_key_id=event["Credentials"]["AccessKeyId"],
-            aws_secret_access_key=event["Credentials"]["SecretAccessKey"],
-            aws_session_token=event["Credentials"]["SessionToken"]
-        )
-        budgets = session.client("budgets")
-        sns = session.client("sns")
-        ssm = session.client("ssm")
-        csv_data = ${jsonencode(local.csvfld)}
-
-        for budget_name in budget_names:
-            if not isinstance(budget_name, str):
-                results.append({"account_id": account_id, "budget_names": BudgetName, "error": f"Invalid BudgetName: {budget_name} is not a string"})
-                continue
-
-            try:
-                print(f"Describing budget: {budget_name}")
-                response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
-                budget = response["Budget"]
-                budget_limit = float(budget["BudgetLimit"]["Amount"])
-                actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
-                percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0
-
-                print(f"Budget: {budget_name}, Limit: $${budget_limit:.2f}, Spend: $${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
-
-                threshold_percent = 80.0
-                alert_trigger = "ACTUAL"
-                for row in csv_data:
-                    if row["BudgetName"] == budget_name and row["AccountId"] == account_id:
-                        threshold_percent = float(row["Alert1Threshold"])
-                        alert_trigger = row["Alert1Trigger"]
-                        break
-
-                print(f"Using threshold: {threshold_percent}%, trigger: {alert_trigger}, comparison: {percentage_used:.2f}% >= {threshold_percent}%")
-
-                alert_triggered = percentage_used >= threshold_percent
-                print(f"Alert triggered for {budget_name}: {alert_triggered}")
-
-                if alert_triggered:
-
-                    print(f"Threshold exceeded for {budget_names} ({percentage_used:.2f}%) - publishing to SNS")
-
-                    try:
-                            sns_response = sns.publish(
-                                TopicArn=sns_topic_arn,
-                                Message=json.dumps({
-                                    "account_id": account_id,
-                                    "budgetName": budget_name,
-                                    "actual_spend": actual_spend,
-                                    "budget_limit": budget_limit,
-                                    "percent_used": percentage_used,
-                                    "alert_trigger": alert_trigger,
-                                    "environment": "stage",
-                                    "message":  message, #json.dumps(payload)
-                                    "Subject": 'Budget Alert',
-                                    "threshold_percent": threshold_percent
-                                })
-                            )
-                            print(f"SNS published successfully for {budget_name}. MessageId: {sns_response['MessageId']}")
-                            # ssm.put_parameter(
-                            #     Name=param_name,
-                            #     Value=json.dumps({
-                            #         "message_id": sns_response["MessageId"],
-                            #         "timestamp": str(datetime.datetime.utcnow())
-                            #     }),
-                            #     Type="String"
-                            # )
-                    except Exception as sns_error:
-                        print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
-                        # results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
-                        # continue
-                # if percentage_used >= threshold_percent and not already_alerted(account_id, budget_name):
-                #   results.append({...})
-
-
-                # results.append({
-                #     "account_id": account_id,
-                #     "budget_name": budget_name,
-                #     "budget_limit": budget_limit,
-                #     "actual_spend": actual_spend,
-                #     "percentage_used": percentage_used,
-                #     "alert_triggered": alert_triggered,
-                #     "threshold_percent": threshold_percent,
-                #     "alert_trigger": alert_trigger
-                # })
-
-            except Exception as e:
-                print(f"Error processing budget {budget_name}: {str(e)}")
-                results.append({"account_id": account_id, "budget_name": budget_name, "error": str(e)})
-
-    except Exception as e:
-        print(f"General error: {str(e)}")
-        results.append({"account_id": account_id, "error": str(e)})
-
-    print(f"Final results: {json.dumps(results, indent=2)}")
-    return {"results": results}
-EOF
+          Handler = "construct_message"
+          Script  = <<-EOT
+            import json
+            def construct_message(inputs, context):
+                message = {
+                    "budgetName": inputs["BudgetName"],
+                    "actualSpend": float(inputs["ActualSpend"]),
+                    "budgetLimit": float(inputs["BudgetLimit"]),
+                    "accountId": inputs["AccountId"],
+                    "alertType": inputs["AlertType"],
+                    "threshold": float(inputs["Threshold"]),
+                    "environment": "prod",
+                    "percentage_used": (float(inputs["ActualSpend"]) / float(inputs["BudgetLimit"]) * 100) if float(inputs["BudgetLimit"]) > 0 else 0.0
+                }
+                return {"message": json.dumps(message)}
+          EOT
           InputPayload = {
-            AccountId   = "{{ TargetAccountId }}"
             BudgetName  = "{{ BudgetName }}"
-            SnsTopicArn = "{{ SnsTopicArn }}"
-            Message     = "{{ Message }}"
-            Credentials = {
-              AccessKeyId     = "{{ assumeRole.AccessKeyId }}"
-              SecretAccessKey = "{{ assumeRole.SecretAccessKey }}"
-              SessionToken    = "{{ assumeRole.SessionToken }}"
+            ActualSpend = "{{ ActualSpend }}"
+            BudgetLimit = "{{ BudgetLimit }}"
+            AccountId   = "{{ AccountId }}"
+            AlertType   = "{{ AlertType }}"
+            Threshold   = "{{ Threshold }}"
+          }
+        }
+        outputs = [
+          {
+            Name     = "message"
+            Selector = "$.Payload.message"
+            Type     = "String"
+          }
+        ]
+      },
+      {
+        name   = "PublishToSNS"
+        action = "aws:executeAwsApi"
+        inputs = {
+          Service  = "sns"
+          Api      = "Publish"
+          TopicArn = "{{ TopicArn }}"
+          Message  = "{{ ConstructMessage.message }}"
+          MessageAttributes = {
+            budgetName = {
+              DataType    = "String"
+              StringValue = "{{ BudgetName }}"
+            }
+            alertType = {
+              DataType    = "String"
+              StringValue = "{{ AlertType }}"
             }
           }
         }
+        onFailure = "step:LogError"
+        outputs = [
+          {
+            Name     = "MessageId"
+            Selector = "$.MessageId"
+            Type     = "String"
+          }
+        ]
+      },
+      {
+        name   = "LogResult"
+        action = "aws:executeScript"
+        inputs = {
+          Runtime = "python3.8"
+          Handler = "log_result"
+          Script  = <<-EOT
+            def log_result(inputs, context):
+                print(f"SNS Message Published. MessageId: {inputs['MessageId']}")
+                return {"status": "Success", "messageId": inputs["MessageId"]}
+          EOT
+          InputPayload = {
+            MessageId = "{{ PublishToSNS.MessageId }}"
+          }
+        }
+        onFailure = "step:LogError"
+      },
+      {
+        name   = "LogError"
+        action = "aws:executeScript"
+        isEnd  = true
+        inputs = {
+          Runtime = "python3.8"
+          Handler = "log_error"
+          Script  = <<-EOT
+            def log_error(inputs, context):
+                print("Failed to publish SNS message")
+                return {"status": "Failure"}
+          EOT
+        }
+      }
+    ]
+    outputs = [
+      {
+        Name     = "MessageId"
+        Selector = "$.PublishToSNS.MessageId"
+        Type     = "String"
+      },
+      {
+        Name     = "Status"
+        Selector = "$.LogResult.status"
+        Type     = "String"
       }
     ]
   })
 }
-
 
 
 variable "aws_region" {
