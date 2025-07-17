@@ -871,7 +871,7 @@ def handler(event, context):
                     "threshold_percent": threshold_percent,
                     "alert_trigger": alert_trigger
                 })
-
+    
             except Exception as e:
                 print(f"Error processing budget {budget_name}: {str(e)}")
                 results.append({"account_id": account_id, "budget_name": budget_name, "error": str(e)})
@@ -884,6 +884,24 @@ def handler(event, context):
     return {"results": results}
 
 EOF
+          # inputs ={
+          #   Service = sns
+          #   Api = Publish
+          #   TopicArn = "{{ SnsTopicArn }}"
+          #   Message = !Sub 
+          #     {
+          #        AccountId = "{{TargetAccountId}}",
+          #        BudgetName = "{{BudgetName}}",
+          #        SnsTopicArn = "{{SnsTopicArn}}",
+          #        Message  = "{{Message}}",
+          #        threshold_percent ="{{ThresholdPercent}}",
+          #        alert_trigger = "{{AlertTrigger}}",
+          #        Credentials = {
+          #          AccessKeyId = "{{ AssumeRole.AccessKeyId }}",
+          #          SecretAccessKey = "{{ AssumeRole.SecretAccessKey }}",
+          #          SessionToken = "{{ AssumeRole.SessionToken }}"
+          #       }
+
           InputPayload = {
             AccountId   = "{{ TargetAccountId }}"
             BudgetName  = "{{ BudgetName }}"
