@@ -434,7 +434,7 @@ resource "aws_lambda_function" "test_lambda" {
 
   source_code_hash = data.archive_file.lambda.output_base64sha256
 
-  runtime = "python3.12"
+  runtime = "python3.11"
   timeout = 180
 
   environment {
@@ -669,250 +669,121 @@ resource "aws_iam_role_policy_attachment" "attach_github_actions_policy" {
 
 
 
-resource "aws_ssm_document" "invoke_central_lambda" {
+# resource "aws_ssm_document" "invoke_central_lambda" {
+#   name          = "budget_update_gha_alert"
+  # document_type = "Automation"
+  # schemaVersion: '0.3'
+resource "aws_ssm_document" "check_budget_and_alert" {
   name          = "budget_update_gha_alert"
   document_type = "Automation"
+
   content = jsonencode({
     schemaVersion = "0.3"
-    description   = "Assume role in target account and invoke central Lambda"
-
+    description   = "Assume a role, check AWS Budgets, and publish to SNS if threshold exceeded."
     parameters = {
-      TargetAccountId = {
-        type    = "String"
-        default = "224761220970"
-      }
-      RoleName = {
-        type    = "String"
-        default = "AWS-SystemsManager-AutomationAdministrationRole"
-      }
-      LambdaFunctionName = {
-        type    = "String"
-        default = "budget_update_gha_alert"
-      }
       AutomationAssumeRole = {
-        type    = "String"
-        default = "arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole"
+        type        = "String"
+        description = "(Optional) IAM role for Automation to assume"
+        default     = "arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole"
       }
-      SnsTopicArn = {
-        type    = "String"
-        default = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
-      }
-      Message = {
-        type    = "String"
-        default = "this is to notify you that you have exceeded your budget threshold"
+      TargetRoleArn = {
+        type        = "String"
+        description = "ARN of the IAM Role to assume in the target account"
+        default     = "arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole"
       }
       BudgetName = {
-        type    = "StringList"
-        default = [for item in local.csvfld : item.BudgetName] #"ABC Operations PROD Account Overall Budget" #"ABC Operations DEV Account Overall Budget"
+        type        = "StringList"
+        description = "Name of the AWS Budget to check"
+        default     =  [for item in local.csvfld : item.BudgetName]
       }
-      BudgetThresholdPercent = {
-        type    = "String"
-        default = "80.0" # Low threshold for testing
+      ThresholdPercent = {
+        type        = "String"
+        description = "Budget threshold percentage to trigger alert"
+        default     = "80"
       }
-      AccountId = {
-        type    = "String"
-        default = "752338767189"
-      }
-      # alertThreshold = {
-      #   type    = "String"
-      #   default = tostring(var.alert_threshold)
-      # }
-      alertTrigger = {
-        type    = "String"
-        default = "ACTUAL"
+      SNSTopicArn = {
+        type        = "String"
+        description = "SNS topic ARN to publish the alert to"
+        default     = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
       }
     }
-
     mainSteps = [
       {
-        name   = "assumeRole"
+        name   = "AssumeTargetRole"
         action = "aws:executeAwsApi"
         inputs = {
-          Service         = "sts"
-          Api             = "AssumeRole"
-          RoleArn         = "{{ AutomationAssumeRole }}"
-          RoleSessionName = "InvokeCentralLambdaSession"
+          Service          = "sts"
+          Api              = "AssumeRole"
+          RoleArn          = "{{ TargetRoleArn }}"
+          RoleSessionName  = "SSMBudgetCheckSession"
         }
         outputs = [
-          { Name = "AccessKeyId", Selector = "$.Credentials.AccessKeyId", Type = "String" },
+          { Name = "AccessKeyId",     Selector = "$.Credentials.AccessKeyId",     Type = "String" },
           { Name = "SecretAccessKey", Selector = "$.Credentials.SecretAccessKey", Type = "String" },
-          { Name = "SessionToken", Selector = "$.Credentials.SessionToken", Type = "String" }
+          { Name = "SessionToken",    Selector = "$.Credentials.SessionToken",    Type = "String" }
         ]
       },
       {
-        name   = "invokeLambda"
+        name   = "CheckBudget"
         action = "aws:executeScript"
         inputs = {
           Runtime = "python3.8"
-          Handler = "handler"
-          Script  = <<EOF
-
-
-import boto3
-import json
-import datetime
-import urllib.parse
-import decimal
-
-def handler(event, context):
-    results = []
-
-    # --- SNS message parsing ---
-    # If triggered by SNS, extract and parse the message
-    if "Records" in event and "Sns" in event["Records"][0]:
-        try:
-            sns_message = event["Records"][0]["Sns"]["Message"]
-            event = json.loads(sns_message)
-            print("Parsed SNS message:", json.dumps(event, indent=2))
-        except Exception as sns_parse_err:
-            print(f"Error parsing SNS message: {sns_parse_err}")
-            return {"results": [{"error": f"Could not parse SNS message: {sns_parse_err}"}]}
-
-    account_id = event.get("AccountId")
-    budget_names = event.get("BudgetName")
-    sns_topic_arn = event.get("SnsTopicArn", "")
-    message = event.get("Message", "Budget threshold exceeded")
-
-    print(f"Input event: {json.dumps(event, indent=2)}")
-    print(f"Processing account: {account_id}, budgets: {budget_names}, sns_topic: {sns_topic_arn}, message: {message}")
-
-    if isinstance(budget_names, str):
-        budget_names = [budget_names]
-    elif not isinstance(budget_names, list) or not budget_names:
-        results.append({"account_id": account_id, "error": "BudgetName must be a non-empty string or list"})
-        return {"results": results}
-
-    if not all([account_id, budget_names, sns_topic_arn]):
-        results.append({"account_id": account_id, "error": "Missing required inputs: AccountId, BudgetName, or SnsTopicArn"})
-        return {"results": results}
-
-    try:
-        session = boto3.Session(
-            aws_access_key_id=event["Credentials"]["AccessKeyId"],
-            aws_secret_access_key=event["Credentials"]["SecretAccessKey"],
-            aws_session_token=event["Credentials"]["SessionToken"]
-        )
-        budgets = session.client("budgets")
-        sns = session.client("sns")
-        ssm = session.client("ssm")
-
-        # TODO: Replace with your actual CSV data loading logic
-        # Example: csv_data = [{"BudgetName": "MyBudget", "AccountId": "123456789012", "Alert1Threshold": 80, "Alert1Trigger": "ACTUAL"}]
-        csv_data = []  # <-- You must load your CSV data here
-
-        for budget_name in budget_names:
-            if not isinstance(budget_name, str):
-                results.append({"account_id": account_id, "budget_name": budget_name, "error": f"Invalid BudgetName: {budget_name} is not a string"})
-                continue
-
-            try:
-                print(f"Describing budget: {budget_name}")
-                response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
-                budget = response["Budget"]
-                budget_limit = float(budget["BudgetLimit"]["Amount"])
-                actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
-                percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0
-
-                print(f"Budget: {budget_name}, Limit: $${budget_limit:.2f}, Spend: $${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
-
-                threshold_percent = 80.0
-                alert_trigger = "ACTUAL"
-                for row in csv_data:
-                    if row["BudgetName"] == budget_name and row["AccountId"] == account_id:
-                        threshold_percent = float(row["Alert1Threshold"])
-                        alert_trigger = row["Alert1Trigger"]
-                        break
-
-                print(f"Using threshold: {threshold_percent}%, trigger: {alert_trigger}, comparison: {percentage_used:.2f}% >= {threshold_percent}%")
-
-                alert_triggered = percentage_used >= threshold_percent
-                print(f"Alert triggered for {budget_name}: {alert_triggered}")
-
-                if alert_triggered:
-                    print(f"Threshold exceeded for {budget_name} ({percentage_used:.2f}%) - publishing to SNS")
-                    try:
-                        sns_response = sns.publish(
-                            TopicArn=sns_topic_arn,
-                            Message=json.dumps({
-                                "account_id": account_id,
-                                "budgetName": budget_name,
-                                "actual_spend": actual_spend,
-                                "budget_limit": budget_limit,
-                                "percent_used": percentage_used,
-                                "alert_trigger": alert_trigger,
-                                "environment": "stage",
-                                "message": message,
-                                "Subject": 'Budget Alert',
-                                "threshold_percent": threshold_percent
-                            })
-                        )
-                        print(f"SNS published successfully for {budget_name}. MessageId: {sns_response['MessageId']}")
-                        # Optionally, store alert in SSM
-                        # ssm.put_parameter(
-                        #     Name=f"/budget-alerts/{account_id}/{budget_name}",
-                        #     Value=json.dumps({
-                        #         "message_id": sns_response["MessageId"],
-                        #         "timestamp": str(datetime.datetime.utcnow())
-                        #     }),
-                        #     Type="String"
-                        # )
-                    except Exception as sns_error:
-                        print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
-                        results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
-                        continue
-
-                results.append({
-                    "account_id": account_id,
-                    "budget_name": budget_name,
-                    "budget_limit": budget_limit,
-                    "actual_spend": actual_spend,
-                    "percentage_used": percentage_used,
-                    "alert_triggered": alert_triggered,
-                    "threshold_percent": threshold_percent,
-                    "alert_trigger": alert_trigger
-                })
-    
-            except Exception as e:
-                print(f"Error processing budget {budget_name}: {str(e)}")
-                results.append({"account_id": account_id, "budget_name": budget_name, "error": str(e)})
-
-    except Exception as e:
-        print(f"General error: {str(e)}")
-        results.append({"account_id": account_id, "error": str(e)})
-
-    print(f"Final results: {json.dumps(results, indent=2)}")
-    return {"results": results}
-
-EOF
-          # inputs ={
-          #   Service = sns
-          #   Api = Publish
-          #   TopicArn = "{{ SnsTopicArn }}"
-          #   Message = !Sub 
-          #     {
-          #        AccountId = "{{TargetAccountId}}",
-          #        BudgetName = "{{BudgetName}}",
-          #        SnsTopicArn = "{{SnsTopicArn}}",
-          #        Message  = "{{Message}}",
-          #        threshold_percent ="{{ThresholdPercent}}",
-          #        alert_trigger = "{{AlertTrigger}}",
-          #        Credentials = {
-          #          AccessKeyId = "{{ AssumeRole.AccessKeyId }}",
-          #          SecretAccessKey = "{{ AssumeRole.SecretAccessKey }}",
-          #          SessionToken = "{{ AssumeRole.SessionToken }}"
-          #       }
-
+          Handler = "check_budget"
           InputPayload = {
-            AccountId   = "{{ TargetAccountId }}"
-            BudgetName  = "{{ BudgetName }}"
-            SnsTopicArn = "{{ SnsTopicArn }}"
-            Message     = "{{ Message }}"
-            Credentials = {
-              AccessKeyId     = "{{ assumeRole.AccessKeyId }}"
-              SecretAccessKey = "{{ assumeRole.SecretAccessKey }}"
-              SessionToken    = "{{ assumeRole.SessionToken }}"
-            }
+            access_key       = "{{ AssumeTargetRole.AccessKeyId }}"
+            secret_key       = "{{ AssumeTargetRole.SecretAccessKey }}"
+            session_token    = "{{ AssumeTargetRole.SessionToken }}"
+            budget_name      = "{{ BudgetName }}"
+            threshold_percent= "{{ ThresholdPercent }}"
+            sns_topic_arn    = "{{ SNSTopicArn }}"
           }
+          Script = <<EOT
+import boto3
+
+def check_budget(event, context):
+    # Create session with assumed role credentials
+    session = boto3.Session(
+        aws_access_key_id=event['access_key'],
+        aws_secret_access_key=event['secret_key'],
+        aws_session_token=event['session_token']
+    )
+
+    budgets_client = session.client('budgets')
+    sns_client = session.client('sns')
+    sts_client = session.client('sts')
+
+    budget_name = event['budget_name']
+    threshold   = float(event['threshold_percent'])
+    account_id  = sts_client.get_caller_identity()['Account']
+
+    budget = budgets_client.describe_budget(
+        AccountId=account_id,
+        BudgetName=budget_name
+    )['Budget']
+
+    actual_spend = float(budget['CalculatedSpend']['ActualSpend']['Amount'])
+    limit        = float(budget['BudgetLimit']['Amount'])
+    percent_used = (actual_spend / limit) * 100
+
+    if percent_used >= threshold:
+        message = (
+            f"Budget Alert!\\n"
+            f"Budget: {budget_name}\\n"
+            f"Account: {account_id}\\n"
+            f"Actual Spend: $${actual_spend:.2f}\\n"
+            f"Limit: $${limit:.2f}\\n"
+            f"Usage: {percent_used:.2f}%\\n"
+            f"Threshold: {threshold}%"
+        )
+        sns_client.publish(
+            TopicArn=event['sns_topic_arn'],
+            Subject="AWS Budget Alert",
+            Message=message
+        )
+        return {"status": "ALERT_SENT", "percent_used": percent_used}
+    else:
+        return {"status": "OK", "percent_used": percent_used}
+EOT
         }
       }
     ]
@@ -921,31 +792,289 @@ EOF
 
 
 
-variable "aws_region" {
-  type    = string
-  default = "us-east-1"
-}
+        # precondition = {
+        #   StringEquals = [
+        #     "{{ EvaluateBudget.ThresholdExceeded }}",
+        #     "true"
+        #   ]
+        #   }
+        
+      
+    # ]
+#   # })
+# }
+
+#     parameters = {
+#       TargetAccountId = {
+#         type    = "String"
+#         default = "224761220970"
+#       }
+#       RoleName = {
+#         type    = "String"
+#         default = "AWS-SystemsManager-AutomationAdministrationRole"
+#       }
+#       LambdaFunctionName = {
+#         type    = "String"
+#         default = "budget_update_gha_alert"
+#       }
+#       AutomationAssumeRole = {
+#         type    = "String"
+#         default = "arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole"
+#       }
+#       SnsTopicArn = {
+#         type    = "String"
+#         default = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
+#       }
+#       Message = {
+#         type    = "String"
+#         default = "this is to notify you that you have exceeded your budget threshold"
+#       }
+#       BudgetName = {
+#         type    = "StringList"
+#         default = [for item in local.csvfld : item.BudgetName] #"ABC Operations PROD Account Overall Budget" #"ABC Operations DEV Account Overall Budget"
+#       }
+#       BudgetThresholdPercent = {
+#         type    = "String"
+#         default = "80.0" # Low threshold for testing
+#       }
+#       AccountId = {
+#         type    = "String"
+#         default = "752338767189"
+#       }
+#       # alertThreshold = {
+#       #   type    = "String"
+#       #   default = tostring(var.alert_threshold)
+#       # }
+#       alertTrigger = {
+#         type    = "String"
+#         default = "ACTUAL"
+#       }
+#     }
+
+#     mainSteps = [
+#       {
+#         name   = "assumeRole"
+#         action = "aws:executeAwsApi"
+#         inputs = {
+#           Service         = "sts"
+#           Api             = "AssumeRole"
+#           RoleArn         = "{{ AutomationAssumeRole }}"
+#           RoleSessionName = "InvokeCentralLambdaSession"
+#         }
+#         outputs = [
+#           { Name = "AccessKeyId", Selector = "$.Credentials.AccessKeyId", Type = "String" },
+#           { Name = "SecretAccessKey", Selector = "$.Credentials.SecretAccessKey", Type = "String" },
+#           { Name = "SessionToken", Selector = "$.Credentials.SessionToken", Type = "String" }
+#         ]
+#       },
+#       {
+#         name   = "invokeLambda"
+#         action = "aws:executeScript"
+#         inputs = {
+#           Runtime = "python3.8"
+#           Handler = "handler"
+#           Script  = <<EOF
 
 
-# Null resource for each account
-resource "null_resource" "trigger_ssm_on_csv_change" {
-  for_each = {
-    for key, account in local.accounts :
-    key => account
-    if account.budget_amount >= account.alert_threshold && account.alert_trigger == "Enabled"
-  }
+# import boto3
+# import json
+# import datetime
+# import urllib.parse
+# import decimal
 
-  triggers = {
-    csv_hash         = local.csv_hash
-    threshold_status = "${each.value.budget_amount}_${each.value.alert_threshold}"
-  }
+# def handler(event, context):
+#     results = []
 
-  provisioner "local-exec" {
-    command = <<EOT
-      echo Debug: TargetAccountId=${each.value.account_id}, BudgetName=${each.value.budget_name}, BudgetAmount=${each.value.budget_amount}, AlertThreshold=${each.value.alert_threshold}
-      aws ssm start-automation-execution --document-name "budget_update_gha_alert" --region "${var.aws_region}" --parameters "{\"TargetAccountId\":\"${each.value.account_id}\",\"BudgetName\":\"${each.value.budget_name}\",\"BudgetAmount\":\"${each.value.budget_amount}\",\"AlertThreshold\":\"${each.value.alert_threshold}\"}" || echo SSM execution failed: %ERRORLEVEL%
-    EOT
-  }
+#     # --- SNS message parsing ---
+#     # If triggered by SNS, extract and parse the message
+#     if "Records" in event and "Sns" in event["Records"][0]:
+#         try:
+#             sns_message = event["Records"][0]["Sns"]["Message"]
+#             event = json.loads(sns_message)
+#             print("Parsed SNS message:", json.dumps(event, indent=2))
+#         except Exception as sns_parse_err:
+#             print(f"Error parsing SNS message: {sns_parse_err}")
+#             return {"results": [{"error": f"Could not parse SNS message: {sns_parse_err}"}]}
 
-  depends_on = [aws_ssm_document.invoke_central_lambda]
-}
+#     account_id = event.get("AccountId")
+#     budget_names = event.get("BudgetName")
+#     sns_topic_arn = event.get("SnsTopicArn", "")
+#     message = event.get("Message", "Budget threshold exceeded")
+
+#     print(f"Input event: {json.dumps(event, indent=2)}")
+#     print(f"Processing account: {account_id}, budgets: {budget_names}, sns_topic: {sns_topic_arn}, message: {message}")
+
+#     if isinstance(budget_names, str):
+#         budget_names = [budget_names]
+#     elif not isinstance(budget_names, list) or not budget_names:
+#         results.append({"account_id": account_id, "error": "BudgetName must be a non-empty string or list"})
+#         return {"results": results}
+
+#     if not all([account_id, budget_names, sns_topic_arn]):
+#         results.append({"account_id": account_id, "error": "Missing required inputs: AccountId, BudgetName, or SnsTopicArn"})
+#         return {"results": results}
+
+#     try:
+#         session = boto3.Session(
+#             aws_access_key_id=event["Credentials"]["AccessKeyId"],
+#             aws_secret_access_key=event["Credentials"]["SecretAccessKey"],
+#             aws_session_token=event["Credentials"]["SessionToken"]
+#         )
+#         budgets = session.client("budgets")
+#         sns = session.client("sns")
+#         ssm = session.client("ssm")
+
+#         # TODO: Replace with your actual CSV data loading logic
+#         # Example: csv_data = [{"BudgetName": "MyBudget", "AccountId": "123456789012", "Alert1Threshold": 80, "Alert1Trigger": "ACTUAL"}]
+#         csv_data = []  # <-- You must load your CSV data here
+
+#         for budget_name in budget_names:
+#             if not isinstance(budget_name, str):
+#                 results.append({"account_id": account_id, "budget_name": budget_name, "error": f"Invalid BudgetName: {budget_name} is not a string"})
+#                 continue
+
+#             try:
+#                 print(f"Describing budget: {budget_name}")
+#                 response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
+#                 budget = response["Budget"]
+#                 budget_limit = float(budget["BudgetLimit"]["Amount"])
+#                 actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
+#                 percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0
+
+#                 print(f"Budget: {budget_name}, Limit: $${budget_limit:.2f}, Spend: $${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
+
+#                 threshold_percent = 80.0
+#                 alert_trigger = "ACTUAL"
+#                 for row in csv_data:
+#                     if row["BudgetName"] == budget_name and row["AccountId"] == account_id:
+#                         threshold_percent = float(row["Alert1Threshold"])
+#                         alert_trigger = row["Alert1Trigger"]
+#                         break
+
+#                 print(f"Using threshold: {threshold_percent}%, trigger: {alert_trigger}, comparison: {percentage_used:.2f}% >= {threshold_percent}%")
+
+#                 alert_triggered = percentage_used >= threshold_percent
+#                 print(f"Alert triggered for {budget_name}: {alert_triggered}")
+
+#                 if alert_triggered:
+#                     print(f"Threshold exceeded for {budget_name} ({percentage_used:.2f}%) - publishing to SNS")
+#                     try:
+#                         sns_response = sns.publish(
+#                             TopicArn=sns_topic_arn,
+#                             Message=json.dumps({
+#                                 "account_id": account_id,
+#                                 "budgetName": budget_name,
+#                                 "actual_spend": actual_spend,
+#                                 "budget_limit": budget_limit,
+#                                 "percent_used": percentage_used,
+#                                 "alert_trigger": alert_trigger,
+#                                 "environment": "stage",
+#                                 "message": message,
+#                                 "Subject": 'Budget Alert',
+#                                 "threshold_percent": threshold_percent
+#                             })
+#                         )
+#                         print(f"SNS published successfully for {budget_name}. MessageId: {sns_response['MessageId']}")
+#                         # Optionally, store alert in SSM
+#                         # ssm.put_parameter(
+#                         #     Name=f"/budget-alerts/{account_id}/{budget_name}",
+#                         #     Value=json.dumps({
+#                         #         "message_id": sns_response["MessageId"],
+#                         #         "timestamp": str(datetime.datetime.utcnow())
+#                         #     }),
+#                         #     Type="String"
+#                         # )
+#                     except Exception as sns_error:
+#                         print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
+#                         results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
+#                         continue
+
+#                 results.append({
+#                     "account_id": account_id,
+#                     "budget_name": budget_name,
+#                     "budget_limit": budget_limit,
+#                     "actual_spend": actual_spend,
+#                     "percentage_used": percentage_used,
+#                     "alert_triggered": alert_triggered,
+#                     "threshold_percent": threshold_percent,
+#                     "alert_trigger": alert_trigger
+#                 })
+    
+#             except Exception as e:
+#                 print(f"Error processing budget {budget_name}: {str(e)}")
+#                 results.append({"account_id": account_id, "budget_name": budget_name, "error": str(e)})
+
+#     except Exception as e:
+#         print(f"General error: {str(e)}")
+#         results.append({"account_id": account_id, "error": str(e)})
+
+#     print(f"Final results: {json.dumps(results, indent=2)}")
+#     return {"results": results}
+
+# EOF
+#           # inputs ={
+#           #   Service = sns
+#           #   Api = Publish
+#           #   TopicArn = "{{ SnsTopicArn }}"
+#           #   Message = !Sub 
+#           #     {
+#           #        AccountId = "{{TargetAccountId}}",
+#           #        BudgetName = "{{BudgetName}}",
+#           #        SnsTopicArn = "{{SnsTopicArn}}",
+#           #        Message  = "{{Message}}",
+#           #        threshold_percent ="{{ThresholdPercent}}",
+#           #        alert_trigger = "{{AlertTrigger}}",
+#           #        Credentials = {
+#           #          AccessKeyId = "{{ AssumeRole.AccessKeyId }}",
+#           #          SecretAccessKey = "{{ AssumeRole.SecretAccessKey }}",
+#           #          SessionToken = "{{ AssumeRole.SessionToken }}"
+#           #       }
+
+#           InputPayload = {
+#             AccountId   = "{{ TargetAccountId }}"
+#             BudgetName  = "{{ BudgetName }}"
+#             SnsTopicArn = "{{ SnsTopicArn }}"
+#             Message     = "{{ Message }}"
+#             Credentials = {
+#               AccessKeyId     = "{{ assumeRole.AccessKeyId }}"
+#               SecretAccessKey = "{{ assumeRole.SecretAccessKey }}"
+#               SessionToken    = "{{ assumeRole.SessionToken }}"
+#             }
+#           }
+#         }
+#       }
+#     ]
+#   })
+# }
+
+
+
+# variable "aws_region" {
+#   type    = string
+#   default = "us-east-1"
+# }
+
+
+# # Null resource for each account
+# resource "null_resource" "trigger_ssm_on_csv_change" {
+#   for_each = {
+#     for key, account in local.accounts :
+#     key => account
+#     if account.budget_amount >= account.alert_threshold && account.alert_trigger == "Enabled"
+#   }
+
+#   triggers = {
+#     csv_hash         = local.csv_hash
+#     threshold_status = "${each.value.budget_amount}_${each.value.alert_threshold}"
+#   }
+
+#   provisioner "local-exec" {
+#     command = <<EOT
+#       echo Debug: TargetAccountId=${each.value.account_id}, BudgetName=${each.value.budget_name}, BudgetAmount=${each.value.budget_amount}, AlertThreshold=${each.value.alert_threshold}
+#       aws ssm start-automation-execution --document-name "budget_update_gha_alert" --region "${var.aws_region}" --parameters "{\"TargetAccountId\":\"${each.value.account_id}\",\"BudgetName\":\"${each.value.budget_name}\",\"BudgetAmount\":\"${each.value.budget_amount}\",\"AlertThreshold\":\"${each.value.alert_threshold}\"}" || echo SSM execution failed: %ERRORLEVEL%
+#     EOT
+#   }
+
+#   depends_on = [aws_ssm_document.invoke_central_lambda]
+# }
+
