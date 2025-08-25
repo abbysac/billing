@@ -739,9 +739,20 @@ resource "aws_ssm_document" "check_budget_and_alert" {
           }
           Script = <<EOT
 import boto3
+import json
+import decimal
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, decimal.Decimal):
+            return float(obj)
+        return super().default(obj)
 
 def check_budget(event, context):
-    # Create session with assumed role credentials
     session = boto3.Session(
         aws_access_key_id=event['access_key'],
         aws_secret_access_key=event['secret_key'],
@@ -752,37 +763,54 @@ def check_budget(event, context):
     sns_client = session.client('sns')
     sts_client = session.client('sts')
 
-    budget_name = event['budget_name']
-    threshold   = float(event['threshold_percent'])
-    account_id  = sts_client.get_caller_identity()['Account']
+    budget_names = event['budget_name'] if isinstance(event['budget_name'], list) else [event['budget_name']]
+    threshold = float(event['threshold_percent'])
+    sns_topic_arn = event['sns_topic_arn']
+    account_id = sts_client.get_caller_identity()['Account']
+    results = []
 
-    budget = budgets_client.describe_budget(
-        AccountId=account_id,
-        BudgetName=budget_name
-    )['Budget']
+    for budget_name in budget_names:
+        try:
+            budget = budgets_client.describe_budget(
+                AccountId=account_id,
+                BudgetName=budget_name
+            )['Budget']
 
-    actual_spend = float(budget['CalculatedSpend']['ActualSpend']['Amount'])
-    limit        = float(budget['BudgetLimit']['Amount'])
-    percent_used = (actual_spend / limit) * 100
+            actual_spend = float(budget['CalculatedSpend']['ActualSpend']['Amount'])
+            limit = float(budget['BudgetLimit']['Amount'])
+            percent_used = (actual_spend / limit * 100) if limit > 0 else 0.0
 
-    if percent_used >= threshold:
-        message = (
-            f"Budget Alert!\\n"
-            f"Budget: {budget_name}\\n"
-            f"Account: {account_id}\\n"
-            f"Actual Spend: $${actual_spend:.2f}\\n"
-            f"Limit: $${limit:.2f}\\n"
-            f"Usage: {percent_used:.2f}%\\n"
-            f"Threshold: {threshold}%"
-        )
-        sns_client.publish(
-            TopicArn=event['sns_topic_arn'],
-            Subject="AWS Budget Alert",
-            Message=message
-        )
-        return {"status": "ALERT_SENT", "percent_used": percent_used}
-    else:
-        return {"status": "OK", "percent_used": percent_used}
+            if percent_used >= threshold:
+                message = {
+                    "account_id": account_id,
+                    "budgetName": budget_name,
+                    "actual_spend": actual_spend,
+                    "budget_limit": limit,
+                    "percent_used": percent_used,
+                    "alert_trigger": "ACTUAL",
+                    "environment": "prod",
+                    "message": f"Budget {budget_name} exceeded threshold",
+                    "Subject": "AWS Budget Alert",
+                    "threshold_percent": threshold
+                }
+                sns_message = json.dumps(message, cls=DecimalEncoder)
+                logger.info(f"Publishing SNS message for {budget_name}: {sns_message}")
+                sns_client.publish(
+                    TopicArn=sns_topic_arn,
+                    Subject="AWS Budget Alert",
+                    Message=sns_message
+                )
+                results.append({"status": "ALERT_SENT", "budget_name": budget_name, "percent_used": percent_used})
+            else:
+                results.append({"status": "OK", "budget_name": budget_name, "percent_used": percent_used})
+        except budgets_client.exceptions.ClientError as e:
+            logger.error(f"Error describing budget {budget_name}: {e}")
+            results.append({"status": "ERROR", "budget_name": budget_name, "error": str(e)})
+        except Exception as e:
+            logger.error(f"Unexpected error for {budget_name}: {e}")
+            results.append({"status": "ERROR", "budget_name": budget_name, "error": str(e)})
+
+    return {"statusCode": 200, "body": json.dumps(results)}
 EOT
         }
       }
@@ -1077,4 +1105,3 @@ EOT
 
 #   depends_on = [aws_ssm_document.invoke_central_lambda]
 # }
-
