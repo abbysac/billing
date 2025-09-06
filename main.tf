@@ -9,6 +9,7 @@ locals {
       alert_threshold = row.Alert1Threshold
       alert_trigger   = row.Alert1Trigger
       sns_topic_arn   = row.SNSTopicArn
+      email           = trim(row.email, " ") # safe even if empty
       linked_accounts = contains(keys(row), "linked_accounts") ? jsondecode(row.linked_accounts) : []
 
     }
@@ -317,19 +318,47 @@ resource "aws_iam_policy" "policy" {
         "Action" : "ses:SendEmail",
         "Resource" : "*"
       },
+      { "Sid" : "EC2FullAccess",
+        "Effect" : "Allow",
+        "Action" : "ec2:DescribeInstances",
+        "Resource" : "*"
+      },
+      { "Sid" : "S3FullAccess",
+        "Effect" : "Allow",
+        "Action" : [
+          "s3:*",
+          "s3:ListBucket",
+          "s3:ListObject"
+        ]
+        "Resource" : "arn:aws:s3:::extended-sqs-s3/"
+        "Condition" : {
+          "StringLike" : {
+            "s3:prefix" : "email_map.csv"
+          }
+        }
+      },
+      {
+        "Effect" : "Allow",
+        "Action" : ["s3:GetObject"],
+        "Resource" : "arn:aws:s3:::extended-sqs-s3/*"
+      },
       {
         "Sid" : "AllowSSMAutomationExecution",
         "Effect" : "Allow",
         "Action" : [
           "budgets:DescribeBudget",
           "budgets:ViewBudget",
-          "ssm:GetParameter"
+          "ssm:GetParameter",
+          "ssm:GetParametersByPath"
 
         ]
 
         "Resource" : [
           "arn:aws:ssm:us-east-1:224761220970:parameter/budgets/default/*",
-          "arn:aws:ssm:us-east-1:224761220970:automation-definition/budget_update_gha_alert"
+          "arn:aws:ssm:us-east-1:224761220970:automation-definition/budget_update_gha_alert",
+          "arn:aws:lambda:us-east-1:224761220970:function:ssm-lambda-tag",
+          "arn:aws:ssm:us-east-1:224761220970:parameter/ssm-param-tags/*",
+          "arn:aws:ssm:us-east-1:224761220970:parameter/tags/"
         ]
       },
       {
@@ -437,12 +466,12 @@ resource "aws_lambda_function" "test_lambda" {
   runtime = "python3.11"
   timeout = 180
 
-  environment {
-    variables = {
-      SENDER_EMAIL     = "abbysac@gmail.com"
-      RECIPIENT_EMAILS = "camleous@yahoo.com"
-    }
-  }
+  # environment {
+  #   variables = {
+  #     SENDER_EMAIL     = "abbysac@gmail.com"
+  #     RECIPIENT_EMAILS = "camleous@yahoo.com"
+  #   }
+  # }
 }
 resource "aws_cloudwatch_log_group" "lambda" {
   name = "/aws/lambda/budget_update_gha_alert"
@@ -526,6 +555,7 @@ resource "aws_budgets_budget" "budget_notification" {
     threshold_type            = "PERCENTAGE"
     notification_type         = each.value.alert_trigger
     subscriber_sns_topic_arns = [each.value.sns_topic_arn]
+    # subscriber_email_addresses = compact([each.value.email])
   }
 }
 
@@ -671,8 +701,8 @@ resource "aws_iam_role_policy_attachment" "attach_github_actions_policy" {
 
 # resource "aws_ssm_document" "invoke_central_lambda" {
 #   name          = "budget_update_gha_alert"
-  # document_type = "Automation"
-  # schemaVersion: '0.3'
+# document_type = "Automation"
+# schemaVersion: '0.3'
 resource "aws_ssm_document" "check_budget_and_alert" {
   name          = "budget_update_gha_alert"
   document_type = "Automation"
@@ -694,7 +724,12 @@ resource "aws_ssm_document" "check_budget_and_alert" {
       BudgetName = {
         type        = "StringList"
         description = "Name of the AWS Budget to check"
-        default     =  [for item in local.csvfld : item.BudgetName]
+        default     = [for item in local.csvfld : item.BudgetName]
+      }
+      BudgetEmail = {
+        type        = "StringList"
+        description = "Name of the AWS Budget to check"
+        default     = [for item in local.csvfld : item.email]
       }
       ThresholdPercent = {
         type        = "String"
@@ -712,15 +747,15 @@ resource "aws_ssm_document" "check_budget_and_alert" {
         name   = "AssumeTargetRole"
         action = "aws:executeAwsApi"
         inputs = {
-          Service          = "sts"
-          Api              = "AssumeRole"
-          RoleArn          = "{{ TargetRoleArn }}"
-          RoleSessionName  = "SSMBudgetCheckSession"
+          Service         = "sts"
+          Api             = "AssumeRole"
+          RoleArn         = "{{ TargetRoleArn }}"
+          RoleSessionName = "SSMBudgetCheckSession"
         }
         outputs = [
-          { Name = "AccessKeyId",     Selector = "$.Credentials.AccessKeyId",     Type = "String" },
+          { Name = "AccessKeyId", Selector = "$.Credentials.AccessKeyId", Type = "String" },
           { Name = "SecretAccessKey", Selector = "$.Credentials.SecretAccessKey", Type = "String" },
-          { Name = "SessionToken",    Selector = "$.Credentials.SessionToken",    Type = "String" }
+          { Name = "SessionToken", Selector = "$.Credentials.SessionToken", Type = "String" }
         ]
       },
       {
@@ -730,12 +765,12 @@ resource "aws_ssm_document" "check_budget_and_alert" {
           Runtime = "python3.8"
           Handler = "check_budget"
           InputPayload = {
-            access_key       = "{{ AssumeTargetRole.AccessKeyId }}"
-            secret_key       = "{{ AssumeTargetRole.SecretAccessKey }}"
-            session_token    = "{{ AssumeTargetRole.SessionToken }}"
-            budget_name      = "{{ BudgetName }}"
-            threshold_percent= "{{ ThresholdPercent }}"
-            sns_topic_arn    = "{{ SNSTopicArn }}"
+            access_key        = "{{ AssumeTargetRole.AccessKeyId }}"
+            secret_key        = "{{ AssumeTargetRole.SecretAccessKey }}"
+            session_token     = "{{ AssumeTargetRole.SessionToken }}"
+            budget_name       = "{{ BudgetName }}"
+            threshold_percent = "{{ ThresholdPercent }}"
+            sns_topic_arn     = "{{ SNSTopicArn }}"
           }
           Script = <<EOT
 import boto3
@@ -788,10 +823,11 @@ def check_budget(event, context):
                     "budget_limit": limit,
                     "percent_used": percent_used,
                     "alert_trigger": "ACTUAL",
-                    "environment": "prod",
+                    "environment": "PROD",
                     "message": f"Budget {budget_name} exceeded threshold",
                     "Subject": "AWS Budget Alert",
                     "threshold_percent": threshold
+                    "BudgetEmail": "abbysac@gmail.com"
                 }
                 sns_message = json.dumps(message, cls=DecimalEncoder)
                 logger.info(f"Publishing SNS message for {budget_name}: {sns_message}")
@@ -820,15 +856,15 @@ EOT
 
 
 
-        # precondition = {
-        #   StringEquals = [
-        #     "{{ EvaluateBudget.ThresholdExceeded }}",
-        #     "true"
-        #   ]
-        #   }
-        
-      
-    # ]
+# precondition = {
+#   StringEquals = [
+#     "{{ EvaluateBudget.ThresholdExceeded }}",
+#     "true"
+#   ]
+#   }
+
+
+# ]
 #   # })
 # }
 
@@ -1027,7 +1063,7 @@ EOT
 #                     "threshold_percent": threshold_percent,
 #                     "alert_trigger": alert_trigger
 #                 })
-    
+
 #             except Exception as e:
 #                 print(f"Error processing budget {budget_name}: {str(e)}")
 #                 results.append({"account_id": account_id, "budget_name": budget_name, "error": str(e)})
