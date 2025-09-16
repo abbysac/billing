@@ -1,3 +1,4 @@
-AccountId,environment,email,linked_accounts
-224761220970,QA,camleous@yahoo.com,
-224761220970,prod,wogstone@yahoo.com
+AccountId,linked_account,environment,email
+224761220970,224761220970,QA,camleous@yahoo.com,
+224761220970,224761220970,DEV,camleous@yahoo.com,
+224761220970,752338767189,PROD,wogstone@yahoo.com

@@ -8,6 +8,7 @@ import re
 import traceback
 import os
 import glob
+import ast  # For safely evaluating the linked_accounts string
 
 # Set up logging
 logger = logging.getLogger()
@@ -46,7 +47,7 @@ def send_ses_email(ses_client, recipient_email, account_id, environment, budget_
         if budget_data:
             subject = f"AWS Budget Alert: {budget_data['budgetName']}"
             email_body = f"""
-{account_id} {budget_data['budgetName']}
+
 Dear System Owner,
 
 This is to notify you that the actual cost accrued yesterday in "{environment}" for "{budget_data['budgetName']}" has exceeded
@@ -225,22 +226,33 @@ def lambda_handler(event, context):
                 }, cls=DecimalEncoder)
             }
 
-        # Process CSV rows and send emails for matching account_id and environment
+        # Process CSV rows and send emails for matching account_id and environment or linked_accounts
         rows_processed = 0
         for row in reader:
             recipient_email = row['email'].strip()
-            account_id = row['AccountId']  # Updated to match CSV header
+            account_id = row['AccountId']
             environment = row['environment']
+            # Handle optional linked_accounts column with validation
+            linked_accounts_value = row.get('linked_accounts', '[]')
+            try:
+                linked_accounts = ast.literal_eval(linked_accounts_value)
+                if not isinstance(linked_accounts, list):
+                    logger.warning(f"Invalid linked_accounts value '{linked_accounts_value}' for account {account_id}, treating as empty list")
+                    linked_accounts = []
+            except (SyntaxError, ValueError) as e:
+                logger.warning(f"Failed to parse linked_accounts '{linked_accounts_value}' for account {account_id}: {str(e)}, treating as empty list")
+                linked_accounts = []
             if not recipient_email:
                 logger.warning(f"Skipping empty email for account {account_id}")
                 email_results['failed'].append(f"{account_id}: Empty email")
                 continue
-            # Case-insensitive match for environment
+            # Check if account_id or any linked_account matches, and environment matches
             if budget_data and (
-                account_id != budget_data['account_id'] or 
+                account_id != budget_data['account_id'] and 
+                budget_data['account_id'] not in linked_accounts and 
                 environment.lower() != budget_data.get('environment', environment).lower()
             ):
-                logger.info(f"Skipping email for {recipient_email}: CSV account_id={account_id}, environment={environment} does not match SNS account_id={budget_data['account_id']}, environment={budget_data.get('environment')}")
+                logger.info(f"Skipping email for {recipient_email}: CSV account_id={account_id}, linked_accounts={linked_accounts}, environment={environment} does not match SNS account_id={budget_data['account_id']}, environment={budget_data.get('environment')}")
                 continue
             success, result = send_ses_email(ses_client, recipient_email, account_id, environment, budget_data)
             if success:
