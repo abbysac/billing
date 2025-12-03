@@ -3,14 +3,23 @@ locals {
   accounts = {
     for row in local.csvfld :
     "${row.AccountId}_${row.BudgetName}" => {
-      account_id      = row.AccountId
+      # "${row.linked_accounts}_${row.BudgetName}" => {
+      account_id = row.AccountId
+      # linked_accounts = row.linked_accounts
       budget_name     = row.BudgetName
       budget_amount   = row.BudgetAmount
       alert_threshold = row.Alert1Threshold
       alert_trigger   = row.Alert1Trigger
       sns_topic_arn   = row.SNSTopicArn
       email           = trim(row.email, " ") # safe even if empty
-      linked_accounts = contains(keys(row), "linked_accounts") ? jsondecode(row.linked_accounts) : []
+      # linked_accounts = contains(keys(row), "linked_accounts") ? jsondecode(row.linked_accounts) : []
+      # Account_id = contains(keys(row), "account_id") ? jsondecode(row.account_id) : []
+      linked_accounts = try(
+        jsondecode(row.linked_accounts),
+        compact(split(",", replace(row.linked_accounts, " ", ""))),
+        length(trimspace(coalesce(row.linked_accounts, ""))) == 12 ? [trimspace(row.linked_accounts)] : [],
+        []
+      )
 
     }
 
@@ -19,6 +28,10 @@ locals {
 
 
   csv_hash = filemd5("./csvdata.csv")
+}
+
+output "csv_keys" {
+  value = [for row in local.csvfld : keys(row)]
 }
 
 
@@ -540,14 +553,21 @@ resource "aws_budgets_budget" "budget_notification" {
   limit_unit   = "USD"
   time_unit    = "MONTHLY"
 
+  # dynamic "cost_filter" {
+  #   for_each = contains(keys(each.value), "member_account_ids") && length(each.value.member_account_ids) > 0 ? [2] : []
+  #   content {
+  #     name   = "memberAccountIds"
+  #     values = each.value.member_account_ids
+  #   }
+  # }
+
   dynamic "cost_filter" {
-    for_each = contains(keys(each.value), "linked_accounts") && length(each.value.linked_accounts) > 0 ? [2] : []
+    for_each = contains(keys(each.value), "linked_accounts") && length(each.value.linked_accounts) > 0 ? [1] : []
     content {
-      name   = "LinkedAccount"
+      name   = " LinkedAccount"
       values = each.value.linked_accounts
     }
   }
-
 
   notification {
     comparison_operator       = "GREATER_THAN"
@@ -577,7 +597,6 @@ resource "aws_iam_role" "ssm_automation_admin" {
         Effect = "Allow"
         Principal = {
           AWS : "*"
-
         }
         Action = "sts:AssumeRole"
       }
@@ -654,28 +673,39 @@ resource "aws_iam_role_policy_attachment" "attach_ssm_lambda_invoke" {
 data "aws_organizations_organization" "org" {}
 
 # Filter active accounts, excluding the management account if desired
-locals {
-  active_accounts = [
-    for account in data.aws_organizations_organization.org.accounts :
-    account.id
-    if account.status == "ACTIVE" && account.id != data.aws_organizations_organization.org.master_account_id
-  ]
-  all_accounts = [
-    for account in data.aws_organizations_organization.org.accounts :
-    account.id
-    if account.status == "ACTIVE"
-  ]
-}
+# locals {
+#   active_accounts = [
+#     for account in data.aws_organizations_organization.org.accounts :
+#     account.id
+#     if account.status == "ACTIVE" && account.id != data.aws_organizations_organization.org.master_account_id
+#   ]
+#   all_accounts = [
+#     for account in data.aws_organizations_organization.org.accounts :
+#     account.id
+#     if account.status == "ACTIVE"
+#   ]
+# }
 
 # Output for debugging
-output "active_linked_accounts" {
-  value = local.active_accounts
-}
+# output "active_linked_accounts" {
+#   value = local.active_accounts
+# }
 
-output "all_active_accounts" {
-  value = local.all_accounts
-}
+# output "all_active_accounts" {
+#   value = local.all_accounts
+# }
 
+# Fetch the entire organization (includes management + all member accounts)
+# data "aws_organizations_organization" "org" {}
+
+# Extract just the member (linked) account IDs
+# - Skip the management account itself (optional, depending on your needs)
+# - You can filter further by status, name, etc. if needed
+# locals {
+#   all_account_ids      = [for acc in data.aws_organizations_organization.org.accounts : acc.id]
+#   linked_accounts      = [for acc in data.aws_organizations_organization.org.accounts : acc.id if acc.id != data.aws_organizations_organization.org.master_account_id]
+#   linked_account_names = { for acc in data.aws_organizations_organization.org.accounts : acc.name => acc.id if acc.id != data.aws_organizations_organization.org.master_account_id }
+# }
 
 resource "aws_iam_policy" "github_actions_policy" {
   name        = "github-actions-iam-get-policy"
@@ -716,6 +746,10 @@ resource "aws_ssm_document" "check_budget_and_alert" {
         description = "(Optional) IAM role for Automation to assume"
         default     = "arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole"
       }
+      MemberRoleName = {
+        type    = "String"
+        default = "budget_assume_role"
+      }
       TargetRoleArn = {
         type        = "String"
         description = "ARN of the IAM Role to assume in the target account"
@@ -744,13 +778,13 @@ resource "aws_ssm_document" "check_budget_and_alert" {
     }
     mainSteps = [
       {
-        name   = "AssumeTargetRole"
+        name   = "AssumeManagementRole"
         action = "aws:executeAwsApi"
         inputs = {
           Service         = "sts"
           Api             = "AssumeRole"
-          RoleArn         = "{{ TargetRoleArn }}"
-          RoleSessionName = "SSMBudgetCheckSession"
+          RoleArn         = "{{ AutomationAssumeRole }}"
+          RoleSessionName = "BudgetCheck"
         }
         outputs = [
           { Name = "AccessKeyId", Selector = "$.Credentials.AccessKeyId", Type = "String" },
@@ -758,95 +792,110 @@ resource "aws_ssm_document" "check_budget_and_alert" {
           { Name = "SessionToken", Selector = "$.Credentials.SessionToken", Type = "String" }
         ]
       },
+
       {
-        name   = "CheckBudget"
+        name   = "CheckAllBudgets"
         action = "aws:executeScript"
         inputs = {
-          Runtime = "python3.8"
-          Handler = "check_budget"
+          Runtime = "python3.11"
+          Handler = "handler"
+
           InputPayload = {
-            access_key        = "{{ AssumeTargetRole.AccessKeyId }}"
-            secret_key        = "{{ AssumeTargetRole.SecretAccessKey }}"
-            session_token     = "{{ AssumeTargetRole.SessionToken }}"
-            budget_name       = "{{ BudgetName }}"
-            threshold_percent = "{{ ThresholdPercent }}"
-            sns_topic_arn     = "{{ SNSTopicArn }}"
+            AccessKeyId     = "{{ AssumeManagementRole.AccessKeyId }}"
+            SecretAccessKey = "{{ AssumeManagementRole.SecretAccessKey }}"
+            SessionToken    = "{{ AssumeManagementRole.SessionToken }}"
+            MemberRoleName  = "{{ MemberRoleName }}"
+
+            budgets_to_check = [
+              for k, v in local.accounts : {
+                budget_name     = v.budget_name
+                threshold       = v.alert_threshold
+                sns_topic_arn   = v.sns_topic_arn
+                linked_accounts = length(v.linked_accounts) > 0 ? v.linked_accounts : [v.account_id]
+              }
+            ]
           }
+
           Script = <<EOT
 import boto3
 import json
-import decimal
 import logging
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
-class DecimalEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, decimal.Decimal):
-            return float(obj)
-        return super().default(obj)
-
-def check_budget(event, context):
-    session = boto3.Session(
-        aws_access_key_id=event['access_key'],
-        aws_secret_access_key=event['secret_key'],
-        aws_session_token=event['session_token']
-    )
-
-    budgets_client = session.client('budgets')
-    sns_client = session.client('sns')
-    sts_client = session.client('sts')
-
-    budget_names = event['budget_name'] if isinstance(event['budget_name'], list) else [event['budget_name']]
-    threshold = float(event['threshold_percent'])
-    sns_topic_arn = event['sns_topic_arn']
-    account_id = sts_client.get_caller_identity()['Account']
+def handler(event, context):
     results = []
 
-    for budget_name in budget_names:
+    # Management account credentials — ALWAYS use these to read the budget
+    mgmt_creds = {
+        'aws_access_key_id': event['AccessKeyId'],
+        'aws_secret_access_key': event['SecretAccessKey'],
+        'aws_session_token': event['SessionToken']
+    }
+
+    # Always use management account session to read budget
+    mgmt_session = boto3.Session(**mgmt_creds)
+    budgets_client = mgmt_session.client('budgets')
+    sns_client     = mgmt_session.client('sns')
+    sts_client     = mgmt_session.client('sts')
+
+    # Get management account ID
+    management_account_id = sts_client.get_caller_identity()['Account']
+
+    for cfg in event['budgets_to_check']:
+        budget_name = cfg['budget_name']
+        threshold   = float(cfg['threshold'])
+        sns_topic   = cfg['sns_topic_arn']
+        accounts    = [str(a) for a in cfg['linked_accounts']]
+
         try:
-            budget = budgets_client.describe_budget(
-                AccountId=account_id,
+            # ALWAYS read the budget from the management account
+            resp = budgets_client.describe_budget(
+                AccountId=management_account_id,
                 BudgetName=budget_name
-            )['Budget']
+            )
+            actual = float(resp['Budget']['CalculatedSpend']['ActualSpend']['Amount'])
+            limit  = float(resp['Budget']['BudgetLimit']['Amount'])
+            pct    = (actual / limit * 100) if limit > 0 else 0
 
-            actual_spend = float(budget['CalculatedSpend']['ActualSpend']['Amount'])
-            limit = float(budget['BudgetLimit']['Amount'])
-            percent_used = (actual_spend / limit * 100) if limit > 0 else 0.0
+            for acc_id in accounts:
+                status = "OK"
+                if pct >= threshold:
+                    status = "ALERT_SENT"
+                    payload = {
+                        "offending_account_id": acc_id,           # REAL linked account
+                        "budget_name": budget_name,
+                        "actual_spend_usd": round(actual, 2),
+                        "budget_limit_usd": round(limit, 2),
+                        "percent_used": round(pct, 2),
+                        "threshold_percent": threshold,
+                        "subject": f"Budget Alert – Account {acc_id} exceeded {threshold}%"
+                    }
+                    sns_client.publish(
+                        TopicArn=sns_topic,
+                        Subject=payload["subject"],
+                        Message=json.dumps(payload)
+                    )
+                    logger.info(f"ALERT SENT for offending account {acc_id}")
 
-            if percent_used >= threshold:
-                message = {
-                    "account_id": account_id,
-                    "budgetName": budget_name,
-                    "actual_spend": actual_spend,
-                    "budget_limit": limit,
-                    "percent_used": percent_used,
-                    "alert_trigger": "ACTUAL",
-                    "environment": "PROD",
-                    "message": f"Budget {budget_name} exceeded threshold",
-                    "Subject": "AWS Budget Alert",
-                    "threshold_percent": threshold
-                    "BudgetEmail": "abbysac@gmail.com"
-                }
-                sns_message = json.dumps(message, cls=DecimalEncoder)
-                logger.info(f"Publishing SNS message for {budget_name}: {sns_message}")
-                sns_client.publish(
-                    TopicArn=sns_topic_arn,
-                    Subject="AWS Budget Alert",
-                    Message=sns_message
-                )
-                results.append({"status": "ALERT_SENT", "budget_name": budget_name, "percent_used": percent_used})
-            else:
-                results.append({"status": "OK", "budget_name": budget_name, "percent_used": percent_used})
-        except budgets_client.exceptions.ClientError as e:
-            logger.error(f"Error describing budget {budget_name}: {e}")
-            results.append({"status": "ERROR", "budget_name": budget_name, "error": str(e)})
+                results.append({
+                    "account_id": acc_id,
+                    "budget_name": budget_name,
+                    "percent_used": round(pct, 2),
+                    "status": status
+                })
+
         except Exception as e:
-            logger.error(f"Unexpected error for {budget_name}: {e}")
-            results.append({"status": "ERROR", "budget_name": budget_name, "error": str(e)})
+            for acc_id in accounts:
+                results.append({
+                    "account_id": acc_id,
+                    "budget_name": budget_name,
+                    "status": "ERROR",
+                    "error": str(e)
+                })
 
-    return {"statusCode": 200, "body": json.dumps(results)}
+    return {"results": results}
 EOT
         }
       }
@@ -856,288 +905,63 @@ EOT
 
 
 
-# precondition = {
-#   StringEquals = [
-#     "{{ EvaluateBudget.ThresholdExceeded }}",
-#     "true"
-#   ]
-#   }
+# resource "aws_iam_policy" "assume_role_policy" {
+#   name        = "AssumePolicyBudgets"
+#   description = "Allows assuming roles in member accounts"
+#   policy = jsonencode({
+#     Version = "2012-10-17",
+#     Statement = [
+#       {
+#         Effect   = "Allow",
+#         Action   = "sts:AssumeRole",
+#         Resource = "arn:aws:iam::752338767189:role/OrganizationAccountAccessRole"
+#       }
+#     ]
+#   })
 
-
-# ]
-#   # })
 # }
+# resource "aws_iam_role" "orgzn_role" {
+#   name = "OrgznAssumeRoleForBudgets"
 
-#     parameters = {
-#       TargetAccountId = {
-#         type    = "String"
-#         default = "224761220970"
-#       }
-#       RoleName = {
-#         type    = "String"
-#         default = "AWS-SystemsManager-AutomationAdministrationRole"
-#       }
-#       LambdaFunctionName = {
-#         type    = "String"
-#         default = "budget_update_gha_alert"
-#       }
-#       AutomationAssumeRole = {
-#         type    = "String"
-#         default = "arn:aws:iam::224761220970:role/AWS-SystemsManager-AutomationAdministrationRole"
-#       }
-#       SnsTopicArn = {
-#         type    = "String"
-#         default = "arn:aws:sns:us-east-1:224761220970:budget-updates-topic"
-#       }
-#       Message = {
-#         type    = "String"
-#         default = "this is to notify you that you have exceeded your budget threshold"
-#       }
-#       BudgetName = {
-#         type    = "StringList"
-#         default = [for item in local.csvfld : item.BudgetName] #"ABC Operations PROD Account Overall Budget" #"ABC Operations DEV Account Overall Budget"
-#       }
-#       BudgetThresholdPercent = {
-#         type    = "String"
-#         default = "80.0" # Low threshold for testing
-#       }
-#       AccountId = {
-#         type    = "String"
-#         default = "752338767189"
-#       }
-#       # alertThreshold = {
-#       #   type    = "String"
-#       #   default = tostring(var.alert_threshold)
-#       # }
-#       alertTrigger = {
-#         type    = "String"
-#         default = "ACTUAL"
-#       }
-#     }
-
-#     mainSteps = [
+#   assume_role_policy = jsonencode({
+#     Version = "2012-10-17",
+#     Statement = [
 #       {
-#         name   = "assumeRole"
-#         action = "aws:executeAwsApi"
-#         inputs = {
-#           Service         = "sts"
-#           Api             = "AssumeRole"
-#           RoleArn         = "{{ AutomationAssumeRole }}"
-#           RoleSessionName = "InvokeCentralLambdaSession"
-#         }
-#         outputs = [
-#           { Name = "AccessKeyId", Selector = "$.Credentials.AccessKeyId", Type = "String" },
-#           { Name = "SecretAccessKey", Selector = "$.Credentials.SecretAccessKey", Type = "String" },
-#           { Name = "SessionToken", Selector = "$.Credentials.SessionToken", Type = "String" }
-#         ]
-#       },
-#       {
-#         name   = "invokeLambda"
-#         action = "aws:executeScript"
-#         inputs = {
-#           Runtime = "python3.8"
-#           Handler = "handler"
-#           Script  = <<EOF
-
-
-# import boto3
-# import json
-# import datetime
-# import urllib.parse
-# import decimal
-
-# def handler(event, context):
-#     results = []
-
-#     # --- SNS message parsing ---
-#     # If triggered by SNS, extract and parse the message
-#     if "Records" in event and "Sns" in event["Records"][0]:
-#         try:
-#             sns_message = event["Records"][0]["Sns"]["Message"]
-#             event = json.loads(sns_message)
-#             print("Parsed SNS message:", json.dumps(event, indent=2))
-#         except Exception as sns_parse_err:
-#             print(f"Error parsing SNS message: {sns_parse_err}")
-#             return {"results": [{"error": f"Could not parse SNS message: {sns_parse_err}"}]}
-
-#     account_id = event.get("AccountId")
-#     budget_names = event.get("BudgetName")
-#     sns_topic_arn = event.get("SnsTopicArn", "")
-#     message = event.get("Message", "Budget threshold exceeded")
-
-#     print(f"Input event: {json.dumps(event, indent=2)}")
-#     print(f"Processing account: {account_id}, budgets: {budget_names}, sns_topic: {sns_topic_arn}, message: {message}")
-
-#     if isinstance(budget_names, str):
-#         budget_names = [budget_names]
-#     elif not isinstance(budget_names, list) or not budget_names:
-#         results.append({"account_id": account_id, "error": "BudgetName must be a non-empty string or list"})
-#         return {"results": results}
-
-#     if not all([account_id, budget_names, sns_topic_arn]):
-#         results.append({"account_id": account_id, "error": "Missing required inputs: AccountId, BudgetName, or SnsTopicArn"})
-#         return {"results": results}
-
-#     try:
-#         session = boto3.Session(
-#             aws_access_key_id=event["Credentials"]["AccessKeyId"],
-#             aws_secret_access_key=event["Credentials"]["SecretAccessKey"],
-#             aws_session_token=event["Credentials"]["SessionToken"]
-#         )
-#         budgets = session.client("budgets")
-#         sns = session.client("sns")
-#         ssm = session.client("ssm")
-
-#         # TODO: Replace with your actual CSV data loading logic
-#         # Example: csv_data = [{"BudgetName": "MyBudget", "AccountId": "123456789012", "Alert1Threshold": 80, "Alert1Trigger": "ACTUAL"}]
-#         csv_data = []  # <-- You must load your CSV data here
-
-#         for budget_name in budget_names:
-#             if not isinstance(budget_name, str):
-#                 results.append({"account_id": account_id, "budget_name": budget_name, "error": f"Invalid BudgetName: {budget_name} is not a string"})
-#                 continue
-
-#             try:
-#                 print(f"Describing budget: {budget_name}")
-#                 response = budgets.describe_budget(AccountId=account_id, BudgetName=budget_name)
-#                 budget = response["Budget"]
-#                 budget_limit = float(budget["BudgetLimit"]["Amount"])
-#                 actual_spend = float(budget["CalculatedSpend"]["ActualSpend"]["Amount"])
-#                 percentage_used = (actual_spend / budget_limit) * 100 if budget_limit else 0
-
-#                 print(f"Budget: {budget_name}, Limit: $${budget_limit:.2f}, Spend: $${actual_spend:.2f}, Percent Used: {percentage_used:.2f}%")
-
-#                 threshold_percent = 80.0
-#                 alert_trigger = "ACTUAL"
-#                 for row in csv_data:
-#                     if row["BudgetName"] == budget_name and row["AccountId"] == account_id:
-#                         threshold_percent = float(row["Alert1Threshold"])
-#                         alert_trigger = row["Alert1Trigger"]
-#                         break
-
-#                 print(f"Using threshold: {threshold_percent}%, trigger: {alert_trigger}, comparison: {percentage_used:.2f}% >= {threshold_percent}%")
-
-#                 alert_triggered = percentage_used >= threshold_percent
-#                 print(f"Alert triggered for {budget_name}: {alert_triggered}")
-
-#                 if alert_triggered:
-#                     print(f"Threshold exceeded for {budget_name} ({percentage_used:.2f}%) - publishing to SNS")
-#                     try:
-#                         sns_response = sns.publish(
-#                             TopicArn=sns_topic_arn,
-#                             Message=json.dumps({
-#                                 "account_id": account_id,
-#                                 "budgetName": budget_name,
-#                                 "actual_spend": actual_spend,
-#                                 "budget_limit": budget_limit,
-#                                 "percent_used": percentage_used,
-#                                 "alert_trigger": alert_trigger,
-#                                 "environment": "stage",
-#                                 "message": message,
-#                                 "Subject": 'Budget Alert',
-#                                 "threshold_percent": threshold_percent
-#                             })
-#                         )
-#                         print(f"SNS published successfully for {budget_name}. MessageId: {sns_response['MessageId']}")
-#                         # Optionally, store alert in SSM
-#                         # ssm.put_parameter(
-#                         #     Name=f"/budget-alerts/{account_id}/{budget_name}",
-#                         #     Value=json.dumps({
-#                         #         "message_id": sns_response["MessageId"],
-#                         #         "timestamp": str(datetime.datetime.utcnow())
-#                         #     }),
-#                         #     Type="String"
-#                         # )
-#                     except Exception as sns_error:
-#                         print(f"SNS publish failed for {budget_name}: {str(sns_error)}")
-#                         results.append({"account_id": account_id, "budget_name": budget_name, "error": f"SNS publish failed: {str(sns_error)}"})
-#                         continue
-
-#                 results.append({
-#                     "account_id": account_id,
-#                     "budget_name": budget_name,
-#                     "budget_limit": budget_limit,
-#                     "actual_spend": actual_spend,
-#                     "percentage_used": percentage_used,
-#                     "alert_triggered": alert_triggered,
-#                     "threshold_percent": threshold_percent,
-#                     "alert_trigger": alert_trigger
-#                 })
-
-#             except Exception as e:
-#                 print(f"Error processing budget {budget_name}: {str(e)}")
-#                 results.append({"account_id": account_id, "budget_name": budget_name, "error": str(e)})
-
-#     except Exception as e:
-#         print(f"General error: {str(e)}")
-#         results.append({"account_id": account_id, "error": str(e)})
-
-#     print(f"Final results: {json.dumps(results, indent=2)}")
-#     return {"results": results}
-
-# EOF
-#           # inputs ={
-#           #   Service = sns
-#           #   Api = Publish
-#           #   TopicArn = "{{ SnsTopicArn }}"
-#           #   Message = !Sub 
-#           #     {
-#           #        AccountId = "{{TargetAccountId}}",
-#           #        BudgetName = "{{BudgetName}}",
-#           #        SnsTopicArn = "{{SnsTopicArn}}",
-#           #        Message  = "{{Message}}",
-#           #        threshold_percent ="{{ThresholdPercent}}",
-#           #        alert_trigger = "{{AlertTrigger}}",
-#           #        Credentials = {
-#           #          AccessKeyId = "{{ AssumeRole.AccessKeyId }}",
-#           #          SecretAccessKey = "{{ AssumeRole.SecretAccessKey }}",
-#           #          SessionToken = "{{ AssumeRole.SessionToken }}"
-#           #       }
-
-#           InputPayload = {
-#             AccountId   = "{{ TargetAccountId }}"
-#             BudgetName  = "{{ BudgetName }}"
-#             SnsTopicArn = "{{ SnsTopicArn }}"
-#             Message     = "{{ Message }}"
-#             Credentials = {
-#               AccessKeyId     = "{{ assumeRole.AccessKeyId }}"
-#               SecretAccessKey = "{{ assumeRole.SecretAccessKey }}"
-#               SessionToken    = "{{ assumeRole.SessionToken }}"
-#             }
-#           }
-#         }
+#         Effect = "Allow",
+#         Principal = {
+#           "Service" = "ssm.amazonaws.com",
+#         },
+#         Action = "sts:AssumeRole"
 #       }
 #     ]
 #   })
 # }
-
-
-
-# variable "aws_region" {
-#   type    = string
-#   default = "us-east-1"
+# resource "aws_iam_role_policy_attachment" "attach_assume_role_policy" {
+#   role       = aws_iam_role.orgzn_role.name
+#   policy_arn = aws_iam_policy.assume_role_policy.arn
 # }
 
+#Required role in management account
+resource "aws_iam_role" "budget_checker" {
+  name = "OrganizationBudgetCheckerRole"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ssm.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
 
-# # Null resource for each account
-# resource "null_resource" "trigger_ssm_on_csv_change" {
-#   for_each = {
-#     for key, account in local.accounts :
-#     key => account
-#     if account.budget_amount >= account.alert_threshold && account.alert_trigger == "Enabled"
-#   }
-
-#   triggers = {
-#     csv_hash         = local.csv_hash
-#     threshold_status = "${each.value.budget_amount}_${each.value.alert_threshold}"
-#   }
-
-#   provisioner "local-exec" {
-#     command = <<EOT
-#       echo Debug: TargetAccountId=${each.value.account_id}, BudgetName=${each.value.budget_name}, BudgetAmount=${each.value.budget_amount}, AlertThreshold=${each.value.alert_threshold}
-#       aws ssm start-automation-execution --document-name "budget_update_gha_alert" --region "${var.aws_region}" --parameters "{\"TargetAccountId\":\"${each.value.account_id}\",\"BudgetName\":\"${each.value.budget_name}\",\"BudgetAmount\":\"${each.value.budget_amount}\",\"AlertThreshold\":\"${each.value.alert_threshold}\"}" || echo SSM execution failed: %ERRORLEVEL%
-#     EOT
-#   }
-
-#   depends_on = [aws_ssm_document.invoke_central_lambda]
-# }
+resource "aws_iam_role_policy" "allow_assume_member" {
+  role = aws_iam_role.budget_checker.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "sts:AssumeRole"
+      Resource = "arn:aws:iam::752338767189:role/budget_assume_role"
+    }]
+  })
+}
