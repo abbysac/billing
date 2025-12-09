@@ -2,42 +2,53 @@ import boto3
 import json
 import logging
 import os
+import csv
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 ses = boto3.client("ses")
 
-# You may store these in Lambda environment variables:
-DEFAULT_RECIPIENT = os.environ.get("ALERT_EMAIL", "camleous@yahoo.com")
-DEFAULT_SENDER    = os.environ.get("SES_FROM_EMAIL", "abbysac@gmail.com")
+SENDER_EMAIL = "abbysac@gmail.com"
+AWS_REGION = "us-east-1"
+EMAIL_MAP_FILE = "/var/task/email_map.csv"
+
+def load_email_map():
+    mapping = {}
+    try:
+        with open(EMAIL_MAP_FILE, "r") as f:
+            reader = csv.DictReader(f)
+
+            for row in reader:
+                linked = row.get("linked_account")
+                email  = row.get("email")
+
+                if linked and email:
+                    mapping[linked.strip()] = email.strip()
+
+        logger.info("Loaded email map: %s", mapping)
+        return mapping
+
+    except Exception as e:
+        logger.error("Error reading email_map.csv: %s", e)
+        return {}
 
 def lambda_handler(event, context):
     logger.info("Incoming SNS event: %s", json.dumps(event))
+
+    email_map = load_email_map()
 
     for record in event.get("Records", []):
         sns_msg = record.get("Sns", {}).get("Message", "")
         logger.info("Raw SNS message: %s", sns_msg)
 
-        # -----------------------------------------------------
-        # TRY PARSING SNS MESSAGE AS JSON
-        # -----------------------------------------------------
+        # Try to parse JSON (SSM events)
         try:
             msg = json.loads(sns_msg)
-            is_json = True
         except Exception:
-            is_json = False
-
-        # -----------------------------------------------------
-        # IGNORE AWS BUDGET NATIVE TEXT NOTIFICATIONS
-        # -----------------------------------------------------
-        if not is_json:
             logger.warning("Ignoring AWS Budgets native text notification")
             continue
 
-        # -----------------------------------------------------
-        # PROCESS JSON MESSAGE (FROM SSM AUTOMATION)
-        # -----------------------------------------------------
         required_keys = [
             "offending_account_id",
             "budget_name",
@@ -53,56 +64,55 @@ def lambda_handler(event, context):
             logger.error(error)
             return {"statusCode": 400, "body": error}
 
-        offending = msg["offending_account_id"]
-        budget    = msg["budget_name"]
-        actual    = msg["actual_spend_usd"]
-        limit     = msg["budget_limit_usd"]
-        pct_used  = msg["percent_used"]
+        acc_id = str(msg["offending_account_id"])
+        budget = msg["budget_name"]
+        actual = msg["actual_spend_usd"]
+        limit  = msg["budget_limit_usd"]
+        pct    = msg["percent_used"]
         threshold = msg["threshold_percent"]
 
-        subject = msg.get(
-            "subject",
-            f"Budget Alert - Account {offending}"
-        )
+        recipient = email_map.get(acc_id)
+        if not recipient:
+            logger.error(f"No email mapping found for account {acc_id}")
+            continue
+
+        subject = f"Budget Alert - Account {acc_id}"
 
         body = f"""
-
 Dear System Owner,
 
-This is to notify you that the actual cost accrued yesterday in {offending} for {budget} has exceeded
-{pct_used}% of {limit} monthly value of budget. Please verify your
-current utilization and cost trajectory. If necessary, please update your annual budget in omfmgmt.
+This is to notify you that the actual cost accrued yesterday in account number {acc_id} for {budget}
+has exceeded {pct}% of the ${limit} monthly budget.
+
+Please verify your current utilization and cost trajectory.
 
 Thank you,
 OMF CloudOps
 
-Offending Account: {offending}
+Offending Account: {acc_id}
 Budget Name:       {budget}
 
 Actual Spend:      ${actual}
 Budget Limit:      ${limit}
-Percent Used:      {pct_used}%
+Percent Used:      {pct}%
 Threshold:         {threshold}%
 
 AWS Budget threshold has been exceeded.
 """
 
-        # -----------------------------------------------------
-        # SEND SES EMAIL
-        # -----------------------------------------------------
         try:
             ses.send_email(
-                Source=DEFAULT_SENDER,
-                Destination={"ToAddresses": [DEFAULT_RECIPIENT]},
+                Source=SENDER_EMAIL,
+                Destination={"ToAddresses": [recipient]},
                 Message={
                     "Subject": {"Data": subject},
                     "Body": {"Text": {"Data": body}}
                 }
             )
-            logger.info("SES email sent successfully for account %s", offending)
+            logger.info(f"SES email sent successfully to {recipient}")
 
         except Exception as e:
-            logger.error("SES email error: %s", e)
+            logger.error(f"SES send error: {e}")
             return {"statusCode": 500, "body": str(e)}
 
     return {"statusCode": 200, "body": "SNS message processed"}
