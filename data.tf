@@ -11,5 +11,11 @@ data "archive_file" "lambda" {
   output_path = "${path.module}/lambda_function.zip"
 }
 
+data "archive_file" "ssm" {
+  type        = "zip"
+  source_dir  = "${path.module}/dev"
+  output_path = "${path.module}/lambda_function_ssm.zip"
+}
+
 
 

@@ -17,3 +17,7 @@ variable "linked_account" {
 #   type        = string
 #   default     = "us-east-1"
 # }
+# variable "lambda_function_name" {
+#   description = "Name of the Lambda function that checks budgets"
+#   type        = string
+# }
