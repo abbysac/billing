@@ -562,16 +562,52 @@ def get_linked_account_from_budget(budget_name, payer_account_id):
             AccountId=payer_account_id,
             BudgetName=budget_name
         )
+
         budget = response["Budget"]
+
+        # Linked Account from CostFilters
         cost_filters = budget.get("CostFilters", {})
         linked_accounts = cost_filters.get("LinkedAccount")
-        if linked_accounts:
-            return linked_accounts[0]
-    except Exception as e:
-        logger.error("Failed to fetch linked account from budget: %s", e)
+        linked_account_id = linked_accounts[0] if linked_accounts else payer_account_id
 
-    # fallback to payer if not found
-    return payer_account_id
+        # Actual Spend
+        actual_spend = float(
+            budget["CalculatedSpend"]["ActualSpend"]["Amount"]
+        )
+
+        # Budget Limit
+        budget_limit = float(
+            budget["BudgetLimit"]["Amount"]
+        )
+
+        # Percentage Used
+        percent_used = round((actual_spend / budget_limit) * 100, 2) if budget_limit > 0 else 0
+
+        return {
+            "linked_account_id": linked_account_id,
+            "actual_spend": actual_spend,
+            "budget_limit": budget_limit,
+            "percent_used": percent_used
+        }
+
+    except Exception as e:
+        logger.error("Failed to fetch budget details: %s", e)
+        return None
+    # try:
+    #     response = budgets_client.describe_budget(
+    #         AccountId=payer_account_id,
+    #         BudgetName=budget_name
+    #     )
+    #     budget = response["Budget"]
+    #     cost_filters = budget.get("CostFilters", {})
+    #     linked_accounts = cost_filters.get("LinkedAccount")
+    #     if linked_accounts:
+    #         return linked_accounts[0]
+    # except Exception as e:
+    #     logger.error("Failed to fetch linked account from budget: %s", e)
+
+    # # fallback to payer if not found
+    # return payer_account_id
 
 
 # ----------------------------------------------------------
@@ -629,7 +665,17 @@ def lambda_handler(event, context):
             logger.error("Could not extract budget name from message")
             continue
 
-        linked_account_id = get_linked_account_from_budget(budget_name, payer_account_id)
+        budget_details = get_linked_account_from_budget(budget_name, payer_account_id)
+        # budget_details = get_budget_details(budget_name, payer_account_id)
+
+        if not budget_details:
+            logger.error("Could not retrieve budget details")
+            continue
+
+        linked_account_id = budget_details["linked_account_id"]
+        actual_spend = budget_details["actual_spend"]
+        budget_limit = budget_details["budget_limit"]
+        percent_used = budget_details["percent_used"]
         logger.info(f"Payer Account: {payer_account_id}, Linked Account: {linked_account_id}")
 
         # Map linked account to recipient
@@ -643,15 +689,16 @@ def lambda_handler(event, context):
 Dear System Owner,
 
 This is to notify you that the actual cost accrued yesterday in account number {linked_account_id} for {budget_name}
-has exceeded percentage of the monthly limit budget.
+has exceeded  {percent_used}% of {budget_limit} monthly limit budget.
 
 Please verify your current utilization and cost trajectory.
 
 
 Management Account ID: {payer_account_id}
 Linked Account ID:     {linked_account_id}
+Actual Spend:        ${actual_spend}
+Budget Limit:        ${budget_limit}    
 
-Please review AWS Cost Explorer for details.
 
 Regards,
 OMF CloudOps

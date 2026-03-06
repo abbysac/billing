@@ -576,33 +576,33 @@
 # }
 
 
-resource "aws_ssm_document" "check_budget_and_alert" {
-  name          = "budget_update_gha_alert"
-  document_type = "Automation"
-  content = jsonencode({
-    schemaVersion = "0.3"
-    description   = "SSM Automation document to invoke Budget Alert Lambda for multiple accounts"
+# resource "aws_ssm_document" "check_budget_and_alert" {
+#   name          = "budget_update_gha_alert"
+#   document_type = "Automation"
+#   content = jsonencode({
+#     schemaVersion = "0.3"
+#     description   = "SSM Automation document to invoke Budget Alert Lambda for multiple accounts"
 
-    # Main steps of the automation
-    mainSteps = [
-      {
-        name   = "InvokeBudgetLambda"
-        action = "aws:invokeLambdaFunction" # REQUIRED
-        inputs = {
-          FunctionName = "budget_update_gha_alert" #required - name or ARN of the Lambda function to invoke
-          # Optionally pass a payload to Lambda
-          Payload = jsonencode({
-            dry_run     = true
-            force_alert = false
-          })
-        }
-      }
-    ]
-  })
+#     # Main steps of the automation
+#     mainSteps = [
+#       {
+#         name   = "InvokeBudgetLambda"
+#         action = "aws:invokeLambdaFunction" # REQUIRED
+#         inputs = {
+#           FunctionName = "budget_update_gha_alert" #required - name or ARN of the Lambda function to invoke
+#           # Optionally pass a payload to Lambda
+#           Payload = jsonencode({
+#             dry_run     = true
+#             force_alert = false
+#           })
+#         }
+#       }
+#     ]
+#   })
 
-  # Optional: tags
-  tags = {
-    Environment = "prod"
-    ManagedBy   = "Terraform"
-  }
-}
+#   # Optional: tags
+#   tags = {
+#     Environment = "prod"
+#     ManagedBy   = "Terraform"
+#   }
+# }
